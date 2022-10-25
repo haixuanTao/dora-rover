@@ -5,9 +5,12 @@ import numpy as np
 
 
 mutex = threading.Lock()
+
+
 class DoraStatus(Enum):
     CONTINUE = 0
     STOP = 1
+
 
 class Operator:
     """
@@ -32,5 +35,5 @@ class Operator:
         if "position" == dora_input["id"]:
             position = np.frombuffer(dora_input["data"])
             print(f"ndt pose: {position}")
-            
+
         return DoraStatus.CONTINUE
