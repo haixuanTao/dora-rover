@@ -4,14 +4,14 @@ communication:
 
 nodes:
   - id: ndt_pose
-    operator:
-      python: ndt_pose.py
+    custom:
+      run: ./ndt_pose.py
       outputs:
         - position
 
-  - id: printer
+  - id: pid
     operator:
-      python: printer.py
+      python: pid_control_op.py
       inputs:
         position: ndt_pose/position
 

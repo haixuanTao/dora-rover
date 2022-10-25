@@ -6,8 +6,8 @@ from typing import Callable
 
 import numpy as np
 from sklearn.metrics import pairwise_distances
-
-
+from enum import Enum
+from scipy.spatial.transform import Rotation as R
 
 MIN_PID_WAYPOINT_DISTANCE = 5
 STEER_GAIN = 0.7
@@ -155,8 +155,8 @@ class Operator:
     """
 
     def __init__(self):
-        self.waypoints = []
-        self.target_speeds = []
+        self.waypoints = np.array([[5,5], [5, 10], [10, 10], [20, 20]])
+        # self.target_speeds = []
         self.metadata = {}
         self.position = []
 
@@ -175,25 +175,20 @@ class Operator:
         if "position" == dora_input["id"]:
             position = np.frombuffer(dora_input["data"])
             self.position = position
-            return DoraStatus.CONTINUE
+            #return DoraStatus.CONTINUE
             # Vehicle speed in m/s.
-        elif "waypoints" == dora_input["id"]:
-            waypoints = np.frombuffer(dora_input["data"])
-            waypoints = waypoints.reshape((3, -1))
-
-            self.target_speeds = waypoints[2, :]
-            self.waypoints = np.ascontiguousarray(waypoints[:2, :].T)
-            self.metadata = dora_input["metadata"]
 
         if len(self.position) == 0:
             return DoraStatus.CONTINUE
 
-        [x, y, _, _, yaw, _, current_speed] = self.position
+        [x, y, _, rx, ry, rz, rw] = self.position
+        rot = R.from_quat([rx, ry, rz, rw])
+        [_, _, yaw] = rot.as_euler("xyz",degrees=True)
         distances = pairwise_distances(self.waypoints, np.array([[x, y]])).T[0]
 
         index = distances > MIN_PID_WAYPOINT_DISTANCE
         self.waypoints = self.waypoints[index]
-        self.target_speeds = self.target_speeds[index]
+        # self.target_speeds = self.target_speeds[index]
         distances = distances[index]
 
         if len(self.waypoints) == 0:
@@ -205,7 +200,7 @@ class Operator:
             ## Retrieve the closest point to the steer distance
             target_location = self.waypoints[argmin_distance]
 
-            target_speed = self.target_speeds[argmin_distance]
+            # target_speed = self.target_speeds[argmin_distance]
 
             ## Compute the angle of steering
             target_vector = target_location - [x, y]
@@ -215,15 +210,11 @@ class Operator:
             ]
             target_angle = get_angle(target_vector, forward_vector)
 
-        throttle, brake = compute_throttle_and_brake(
-            pid, current_speed, target_speed
-        )
+       # throttle, brake = compute_throttle_and_brake(
+       #     pid, current_speed, target_speed
+       # )
 
-        steer = radians_to_steer(target_angle, STEER_GAIN)
-
-        send_output(
-            "control",
-            np.array([throttle, steer, brake]).tobytes(),
-            self.metadata,
-        )
+       # steer = radians_to_steer(target_angle, STEER_GAIN)
+        print(f"position: {x, y, yaw}, target: {target_location}")
+        # print(f"steer: angle: {target_angle} x: {np.cos(target_angle)}, y: {np.sin(target_angle)}")
         return DoraStatus.CONTINUE

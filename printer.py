@@ -1,18 +1,13 @@
 import threading
 from typing import Callable
-
+from enum import Enum
 import numpy as np
 
-from _dora_utils import DoraStatus
-from carla import Client, VehicleControl, command
-
-CARLA_SIMULATOR_HOST = "localhost"
-CARLA_SIMULATOR_PORT = "2000"
-client = Client(CARLA_SIMULATOR_HOST, int(CARLA_SIMULATOR_PORT))
-client.set_timeout(30.0)
 
 mutex = threading.Lock()
-
+class DoraStatus(Enum):
+    CONTINUE = 0
+    STOP = 1
 
 class Operator:
     """
