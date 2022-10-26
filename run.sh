@@ -1,16 +1,6 @@
-virtualenv .env
+source /home/demo/workspace/mapping_ws/devel/setup.bash
+roslaunch lidar_localizer ndt_mapping.launch
 
-
-. $(pwd)/.env/bin/activate
-
-# Dev dependencies
-pip install maturin
-cd ../dora/apis/python/node
-maturin develop
-cd ../../../../dora_ros_bridge
-
-# Dependencies
-pip install --upgrade pip
-pip install -r requirements.txt
+sleep 5
 
 ../dora/target/debug/dora-coordinator  --run-dataflow dataflow.yml

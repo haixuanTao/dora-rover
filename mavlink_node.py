@@ -5,6 +5,7 @@ from mavsdk.offboard import OffboardError, VelocityBodyYawspeed
 from dora import Node
 import numpy as np
 
+node = Node()
 
 async def run():
     drone = System()
@@ -21,10 +22,11 @@ async def run():
     for _ in range(5):
         input_id, value, metadata = node.next()
         [vx, vy, vz, yaw] = np.frombuffer(value)
-        await drone.offboard.set_velocity_body(VelocityBodyYawspeed(vx, vy, vz, yaw))
-        await asyncio.sleep(0.5)
-        await drone.offboard.set_velocity_body(VelocityBodyYawspeed(0, 0, 0.0, 0.0))
-        await asyncio.sleep(0.5)
+        print(f"mavlink: {vx, vy, yaw}")
+        #await drone.offboard.set_velocity_body(VelocityBodyYawspeed(vx, vy, vz, yaw))
+        #await asyncio.sleep(0.5)
+        #await drone.offboard.set_velocity_body(VelocityBodyYawspeed(0, 0, 0.0, 0.0))
+        #await asyncio.sleep(0.5)
 
     print("-- Landing")
 

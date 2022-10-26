@@ -6,6 +6,7 @@ from sensor_msgs.msg import PointCloud2, Imu
 from geometry_msgs.msg import PoseStamped
 import numpy as np
 from dora import Node
+import time
 
 node = Node()
 
@@ -28,8 +29,10 @@ def imu_callback(data):
 
     node.send_output("imu", imu_data.tobytes())
 
+start = time.time()
 
 def pose_callback(data):
+    global start
     position = np.array(
         [
             data.pose.position.x,
@@ -41,8 +44,9 @@ def pose_callback(data):
             data.pose.orientation.w,
         ]
     )
-
-    node.send_output("position", position.tobytes())
+    if time.time() - start > 0.1:
+        node.send_output("position", position.tobytes())
+        start = time.time()
 
 
 rospy.init_node("listener", anonymous=True)

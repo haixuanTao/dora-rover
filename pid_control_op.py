@@ -9,7 +9,7 @@ from sklearn.metrics import pairwise_distances
 from enum import Enum
 from scipy.spatial.transform import Rotation as R
 
-MIN_PID_WAYPOINT_DISTANCE = 5
+MIN_PID_WAYPOINT_DISTANCE = 1
 STEER_GAIN = 0.7
 COAST_FACTOR = 1.75
 pid_p = 1.0
@@ -21,6 +21,24 @@ pid_use_real_time = True
 BRAKE_MAX = 1.0
 THROTTLE_MAX = 0.5
 
+def get_angle(left, right) -> float:
+    """Computes the angle between the vector and another vector
+    in radians."""
+    [left_x, left_y] = left
+    [right_x, right_y] = right
+
+    angle = math.atan2(left_y, left_x) - math.atan2(right_y, right_x)
+    if angle > math.pi:
+        angle -= 2 * math.pi
+    elif angle < -math.pi:
+        angle += 2 * math.pi
+    return angle
+
+
+class DoraStatus(Enum):
+    CONTINUE = 0
+    STOP = 1
+
 
 class Operator:
     """
@@ -28,7 +46,7 @@ class Operator:
     """
 
     def __init__(self):
-        self.waypoints = np.array([[5, 5], [5, 10], [10, 10], [20, 20]])
+        self.waypoints = np.array([[0, 3]])
         # self.target_speeds = []
         self.metadata = {}
         self.position = []
@@ -48,16 +66,15 @@ class Operator:
         """
 
         if "position" == dora_input["id"]:
-            if self.initial_imu is not None:
+            if self.initial_orientation is not None:
                 position = np.frombuffer(dora_input["data"])[:3]
                 self.position = self.initial_orientation.apply(position)
-
-        elif "imu_data" == dora_input["id"]:
+        elif "imu" == dora_input["id"]:
             data = np.frombuffer(dora_input["data"])
             [rx, ry, rz, rw, vx, vy, vz, ax, ay, az] = data
             rot = R.from_quat([rx, ry, rz, rw])
 
-            if self.initial_imu is None:
+            if self.initial_orientation is None:
                 self.initial_orientation = rot
 
             self.orientation = rot
@@ -66,7 +83,8 @@ class Operator:
 
         if len(self.position) == 0:
             return DoraStatus.CONTINUE
-
+        
+        [x, y, z] = self.position
         [_, _, yaw] = self.orientation.as_euler("xyz", degrees=True)
         distances = pairwise_distances(self.waypoints, np.array([[x, y]])).T[0]
 
@@ -88,17 +106,20 @@ class Operator:
 
             ## Compute the angle of steering
             target_vector = target_location - [x, y]
-            forward_vector = [
-                math.cos(math.radians(yaw)),
-                math.sin(math.radians(yaw)),
-            ]
-            target_angle = get_angle(target_vector, forward_vector)
+            target_vector = np.clip(target_vector, -0.1, 0.1)
+            #forward_vector = [
+            #    math.cos(math.radians(yaw)),
+            #    math.sin(math.radians(yaw)),
+            #]
+            #target_angle = get_angle(target_vector, forward_vector)
 
         # throttle, brake = compute_throttle_and_brake(
         #     pid, current_speed, target_speed
         # )
 
         # steer = radians_to_steer(target_angle, STEER_GAIN)
-        print(f"position: {x, y, yaw}, target: {target_location}")
+        print(f"position: {x, y, yaw}, target: {target_location}, vec: {target_vector}")
         # print(f"steer: angle: {target_angle} x: {np.cos(target_angle)}, y: {np.sin(target_angle)}")
+        data = np.array([ target_vector[0], target_vector[1], 0.,np.degrees(np.arctan2(target_vector[1], target_vector[0])) ])
+        send_output("mavlink_control", data.tobytes() )
         return DoraStatus.CONTINUE

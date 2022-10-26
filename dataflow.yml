@@ -8,10 +8,20 @@ nodes:
       run: ./ndt_pose.py
       outputs:
         - position
+        - imu
 
   - id: pid
     operator:
       python: pid_control_op.py
       inputs:
         position: ndt_pose/position
+        imu: ndt_pose/imu
+      outputs:
+        - mavlink_control
 
+
+  - id: mavros
+    custom:
+      run: ./mavros_node.py
+      inputs:
+        control: pid/mavlink_control
