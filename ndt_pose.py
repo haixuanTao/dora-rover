@@ -10,7 +10,6 @@ import time
 
 node = Node()
 
-
 def imu_callback(data):
     imu_data = np.array(
         [
@@ -44,6 +43,8 @@ def pose_callback(data):
             data.pose.orientation.w,
         ]
     )
+
+
     if time.time() - start > 1:
         node.send_output("position", position.tobytes())
         start = time.time()

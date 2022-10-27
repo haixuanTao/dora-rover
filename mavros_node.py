@@ -8,6 +8,8 @@ import numpy as np
 import time
 node = Node()
 
+TARGET_SPEED = 1001
+
 def talker():
     pub = rospy.Publisher('mavros/rc/override', OverrideRCIn, queue_size=1)
     rospy.init_node('talker', anonymous=True)
@@ -15,8 +17,19 @@ def talker():
         [angle] = np.frombuffer(value)
         print(f"vel: {angle}")
         target = OverrideRCIn()
-        print( int((angle + np.pi)  / (2* np.pi) * 2000))
-        target.channels[0] =int(( -angle + np.pi)  / (2* np.pi) * 2000)
+        if angle < np.pi/2 and angle > -np.pi/2:
+            target_rotation = int((-angle + np.pi/2)  / (np.pi) * 1000) + 1000
+            print(f"target rotation: {target_rotation}")
+            target.channels[0] = target_rotation
+            target.channels[2] = TARGET_SPEED
+        elif angle > np.pi/2: 
+            target_rotation =  0
+            target.channels[0] = target_rotation
+            target.channels[2] = TARGET_SPEED
+        else: 
+            target.channels[0] = 2000
+            target.channels[2] = TARGET_SPEED
+
         # target.channels[2] = 100
        # target = PositionTarget()
        # target.coordinate_frame = 9
@@ -28,6 +41,13 @@ def talker():
        # target.velocity.y = -0.1
         # target.yaw = yaw
         pub.publish(target)
+    print("stopping")
+    target = OverrideRCIn()
+    target.channels[0] = 2000
+    target.channels[2] = 120
+
+    pub.publish(target)
+    print("stopped")
 
         # rate.sleep()
 

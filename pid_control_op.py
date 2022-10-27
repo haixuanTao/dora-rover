@@ -21,17 +21,6 @@ pid_use_real_time = True
 BRAKE_MAX = 1.0
 THROTTLE_MAX = 0.5
 
-def get_angle(left_angle, right_angle) -> float:
-    """Computes the angle between the vector and another vector
-    in radians."""
-
-
-    angle = left_angle - right_angle
-    if angle > math.pi:
-        angle -= 2 * math.pi
-    elif angle < -math.pi:
-        angle += 2 * math.pi
-    return angle
 
 
 class DoraStatus(Enum):
@@ -45,7 +34,7 @@ class Operator:
     """
 
     def __init__(self):
-        self.waypoints = np.array([[1, 0], [1, 3]])
+        self.waypoints = np.array([[0, 1.5], [3, 1.5]])
         # self.target_speeds = []
         self.metadata = {}
         self.position = []
@@ -68,6 +57,9 @@ class Operator:
             if self.initial_orientation is not None:
                 position = np.frombuffer(dora_input["data"])[:3]
                 self.position = self.initial_orientation.apply(position)
+                if position[0] >7 or position[1]>7:
+                    return DoraStatus.STOP
+                    
         elif "imu" == dora_input["id"]:
             data = np.frombuffer(dora_input["data"])
             [rx, ry, rz, rw, vx, vy, vz, ax, ay, az] = data
@@ -96,7 +88,7 @@ class Operator:
             target_angle = 0
             target_speed = 0
             self.waypoints = np.array([[0, 1]])
-            return DoraStatus.CONTINUE
+            return DoraStatus.STOP
         else:
             argmin_distance = np.argmin(distances)
 
@@ -108,8 +100,12 @@ class Operator:
             ## Compute the angle of steering
             target_vector = target_location - [x, y]
             target_abs_angle = math.atan2(target_vector[1], target_vector[0])
-            target_angle = get_angle(target_abs_angle, math.radians(yaw))
-
+            angle = target_abs_angle - math.radians(yaw)
+            if angle > math.pi:
+                angle -= 2 * math.pi
+            elif angle < -math.pi:
+                angle += 2 * math.pi
+    
         # throttle, brake = compute_throttle_and_brake(
         #     pid, current_speed, target_speed
         # )
@@ -117,7 +113,8 @@ class Operator:
         # steer = radians_to_steer(target_angle, STEER_GAIN)
         # print(f"position: {x, y, yaw}, target: {target_location}, vec: {target_vector}")
         # print(f"steer: angle: {target_angle} x: {np.cos(target_angle)}, y: {np.sin(target_angle)}")
-        data = np.array([target_angle])
-        print(f"abs: {math.degrees(target_abs_angle)}, rel: {math.degrees(target_angle)}, current: {(yaw)}")
+        
+        data = np.array([angle])
+        print(f"abs: {math.degrees(target_abs_angle)}, rel: {math.degrees(angle)}, current: {(yaw)}")
         send_output("mavlink_control", data.tobytes() )
         return DoraStatus.CONTINUE
