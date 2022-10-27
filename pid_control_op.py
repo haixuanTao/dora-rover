@@ -21,13 +21,12 @@ pid_use_real_time = True
 BRAKE_MAX = 1.0
 THROTTLE_MAX = 0.5
 
-def get_angle(left, right) -> float:
+def get_angle(left_angle, right_angle) -> float:
     """Computes the angle between the vector and another vector
     in radians."""
-    [left_x, left_y] = left
-    [right_x, right_y] = right
 
-    angle = math.atan2(left_y, left_x) - math.atan2(right_y, right_x)
+
+    angle = left_angle - right_angle
     if angle > math.pi:
         angle -= 2 * math.pi
     elif angle < -math.pi:
@@ -46,7 +45,7 @@ class Operator:
     """
 
     def __init__(self):
-        self.waypoints = np.array([[0, 3]])
+        self.waypoints = np.array([[1, 0], [1, 3]])
         # self.target_speeds = []
         self.metadata = {}
         self.position = []
@@ -96,6 +95,8 @@ class Operator:
         if len(self.waypoints) == 0:
             target_angle = 0
             target_speed = 0
+            self.waypoints = np.array([[0, 1]])
+            return DoraStatus.CONTINUE
         else:
             argmin_distance = np.argmin(distances)
 
@@ -106,20 +107,17 @@ class Operator:
 
             ## Compute the angle of steering
             target_vector = target_location - [x, y]
-            target_vector = np.clip(target_vector, -0.1, 0.1)
-            #forward_vector = [
-            #    math.cos(math.radians(yaw)),
-            #    math.sin(math.radians(yaw)),
-            #]
-            #target_angle = get_angle(target_vector, forward_vector)
+            target_abs_angle = math.atan2(target_vector[1], target_vector[0])
+            target_angle = get_angle(target_abs_angle, math.radians(yaw))
 
         # throttle, brake = compute_throttle_and_brake(
         #     pid, current_speed, target_speed
         # )
 
         # steer = radians_to_steer(target_angle, STEER_GAIN)
-        print(f"position: {x, y, yaw}, target: {target_location}, vec: {target_vector}")
+        # print(f"position: {x, y, yaw}, target: {target_location}, vec: {target_vector}")
         # print(f"steer: angle: {target_angle} x: {np.cos(target_angle)}, y: {np.sin(target_angle)}")
-        data = np.array([ target_vector[0], target_vector[1], 0.,np.degrees(np.arctan2(target_vector[1], target_vector[0])) ])
+        data = np.array([target_angle])
+        print(f"abs: {math.degrees(target_abs_angle)}, rel: {math.degrees(target_angle)}, current: {(yaw)}")
         send_output("mavlink_control", data.tobytes() )
         return DoraStatus.CONTINUE

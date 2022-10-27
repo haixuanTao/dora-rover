@@ -17,14 +17,12 @@ async def run():
             print(f"Drone discovered with UUID: {state}")
             break
 
-    await drone.action.arm()
+    for input_id, value, metadata in node:
 
-    for _ in range(5):
-        input_id, value, metadata = node.next()
         [vx, vy, vz, yaw] = np.frombuffer(value)
-        print(f"mavlink: {vx, vy, yaw}")
-        #await drone.offboard.set_velocity_body(VelocityBodyYawspeed(vx, vy, vz, yaw))
-        #await asyncio.sleep(0.5)
+        print(f"vel: {vx, vy, vz, yaw}")
+        await drone.offboard.set_velocity_body(VelocityBodyYawspeed(0.1, 0.1, 0, 45))
+        print("awaited!")
         #await drone.offboard.set_velocity_body(VelocityBodyYawspeed(0, 0, 0.0, 0.0))
         #await asyncio.sleep(0.5)
 

@@ -44,7 +44,7 @@ def pose_callback(data):
             data.pose.orientation.w,
         ]
     )
-    if time.time() - start > 0.1:
+    if time.time() - start > 1:
         node.send_output("position", position.tobytes())
         start = time.time()
 
