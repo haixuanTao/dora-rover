@@ -25,3 +25,10 @@ nodes:
       run: ./mavros_node.py
       inputs:
         control: pid/mavlink_control
+
+  - id: plot
+    operator:
+      python: physicals/plot.py
+      inputs:
+        image: webcam/image
+        tick: dora/timer/millis/100

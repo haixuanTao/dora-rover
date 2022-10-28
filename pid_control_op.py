@@ -9,7 +9,7 @@ from sklearn.metrics import pairwise_distances
 from enum import Enum
 from scipy.spatial.transform import Rotation as R
 
-MIN_PID_WAYPOINT_DISTANCE = 1
+MIN_PID_WAYPOINT_DISTANCE = 0.3
 STEER_GAIN = 0.7
 COAST_FACTOR = 1.75
 pid_p = 1.0
@@ -20,7 +20,6 @@ pid_use_real_time = True
 
 BRAKE_MAX = 1.0
 THROTTLE_MAX = 0.5
-
 
 
 class DoraStatus(Enum):
@@ -34,7 +33,7 @@ class Operator:
     """
 
     def __init__(self):
-        self.waypoints = np.array([[0, 1.5], [3, 1.5]])
+        self.waypoints = np.array([[0, 1], [2, 1]])
         # self.target_speeds = []
         self.metadata = {}
         self.position = []
@@ -57,9 +56,9 @@ class Operator:
             if self.initial_orientation is not None:
                 position = np.frombuffer(dora_input["data"])[:3]
                 self.position = self.initial_orientation.apply(position)
-                if position[0] >7 or position[1]>7:
+                if position[0] > 4 or position[1] > 4:
                     return DoraStatus.STOP
-                    
+
         elif "imu" == dora_input["id"]:
             data = np.frombuffer(dora_input["data"])
             [rx, ry, rz, rw, vx, vy, vz, ax, ay, az] = data
@@ -74,7 +73,7 @@ class Operator:
 
         if len(self.position) == 0:
             return DoraStatus.CONTINUE
-        
+
         [x, y, z] = self.position
         [_, _, yaw] = self.orientation.as_euler("xyz", degrees=True)
         distances = pairwise_distances(self.waypoints, np.array([[x, y]])).T[0]
@@ -105,7 +104,7 @@ class Operator:
                 angle -= 2 * math.pi
             elif angle < -math.pi:
                 angle += 2 * math.pi
-    
+
         # throttle, brake = compute_throttle_and_brake(
         #     pid, current_speed, target_speed
         # )
@@ -113,8 +112,10 @@ class Operator:
         # steer = radians_to_steer(target_angle, STEER_GAIN)
         # print(f"position: {x, y, yaw}, target: {target_location}, vec: {target_vector}")
         # print(f"steer: angle: {target_angle} x: {np.cos(target_angle)}, y: {np.sin(target_angle)}")
-        
+
         data = np.array([angle])
-        print(f"abs: {math.degrees(target_abs_angle)}, rel: {math.degrees(angle)}, current: {(yaw)}")
-        send_output("mavlink_control", data.tobytes() )
+        print(
+            f"abs: {math.degrees(target_abs_angle)}, rel: {math.degrees(angle)}, current: {(yaw)}"
+        )
+        send_output("mavlink_control", data.tobytes())
         return DoraStatus.CONTINUE
