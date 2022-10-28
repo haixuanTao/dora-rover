@@ -13,5 +13,5 @@ def callback(data):
     node.send_output("lidar_pc", data.tobytes())
 
 rospy.init_node('listener', anonymous=True)
-rospy.Subscriber("", PointCloud2, callback)
+rospy.Subscriber("velodyne_points", PointCloud2, callback)
 rospy.spin()

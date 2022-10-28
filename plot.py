@@ -15,6 +15,7 @@ from dora_utils import (
     get_intrinsic_matrix,
     get_projection_matrix,
     location_to_camera_view,
+    lidar_to_camera_view,
     to_world_coordinate,
 )
 
@@ -116,24 +117,25 @@ class Operator:
             )[0]
             self.position = np.concatenate([sensor_transform, position[3:]])
 
+
         elif dora_input["id"] == "lidar_pc":
             point_cloud = np.frombuffer(
                 dora_input["data"]
             )
             point_cloud = np.reshape(
-                point_cloud, (int(point_cloud.shape[0] / 4), 4)
-            )
+                point_cloud, (int(point_cloud.shape[0] / 5), 5)
+            )[:, :3]
 
             # To camera coordinate
             # The latest coordinate space is the unreal space.
             point_cloud = np.dot(
                 point_cloud,
                 np.array(
-                    [[0, 0, 1, 0], [1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 0, 1]]
+                    [[0, 0, 1], [1, 0, 0], [0, -1, 0]]
                 ),
             )
             point_cloud = point_cloud[np.where(point_cloud[:, 2] > 0.1)]
-            self.point_cloud = point_cloud[:, :3]
+            self.point_cloud = point_cloud
 
         elif "image" == dora_input["id"]:
             self.camera_frame = cv2.imdecode(
@@ -200,31 +202,27 @@ class Operator:
                 (150, 150, 0),
                 -1,
             )
+        now = time.time()
+        locations = lidar_to_camera_view(
+                self.point_cloud,
+                INTRINSIC_MATRIX
+            ).astype(int)
+        for point in locations.T:
 
-        for point in self.point_cloud:
-
-            point_world = to_world_coordinate(
-                np.array([point]), extrinsic_matrix
-            )
-            location = location_to_camera_view(
-                point_world,
-                INTRINSIC_MATRIX,
-                sensor_inv_extrinsic_matrix,
-            )
-            back = resized_image.copy()
+            #back = resized_image.copy()
             cv2.circle(
-                back,
-                (int(location[0]), int(location[1])),
+                resized_image,
+                ((point[0]), (point[1])),
                 3,
                 (0, 0, int(min(point[2], 255))),
                 -1,
             )
             # blend with original image
-            alpha = 0.25
-            resized_image = cv2.addWeighted(
-                resized_image, 1 - alpha, back, alpha, 0
-            )
-
+            #alpha = 0.25
+            #resized_image = cv2.addWeighted(
+            #    resized_image, 1 - alpha, back, alpha, 0
+            #)
+        print(f"plotting lidar: {time.time() - now} ")
         for obstacle_bb in self.obstacles_bbox:
             [min_x, max_x, min_y, max_y, confidence, label] = obstacle_bb
 

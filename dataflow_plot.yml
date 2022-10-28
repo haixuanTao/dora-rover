@@ -17,7 +17,7 @@ nodes:
       inputs:
         image: webcam/image
         tick: dora/timer/millis/100
-        # lidar_pc: lidar/lidar_pc
+        lidar_pc: lidar/lidar_pc
 
   - id: lidar
     custom:
