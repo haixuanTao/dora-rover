@@ -58,6 +58,7 @@ class Operator:
         self.position = []
         self.camera_frame = []
         self.traffic_sign_bbox = []
+        self.point_cloud = []
 
     def on_input(
         self,
@@ -114,6 +115,25 @@ class Operator:
                 np.array([[3.0, 0, 1.0]]), extrinsic_matrix
             )[0]
             self.position = np.concatenate([sensor_transform, position[3:]])
+
+        elif dora_input["id"] == "lidar_pc":
+            point_cloud = np.frombuffer(
+                dora_input["data"]
+            )
+            point_cloud = np.reshape(
+                point_cloud, (int(point_cloud.shape[0] / 4), 4)
+            )
+
+            # To camera coordinate
+            # The latest coordinate space is the unreal space.
+            point_cloud = np.dot(
+                point_cloud,
+                np.array(
+                    [[0, 0, 1, 0], [1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 0, 1]]
+                ),
+            )
+            point_cloud = point_cloud[np.where(point_cloud[:, 2] > 0.1)]
+            self.point_cloud = point_cloud[:, :3]
 
         elif "image" == dora_input["id"]:
             self.camera_frame = cv2.imdecode(
@@ -179,6 +199,30 @@ class Operator:
                 3,
                 (150, 150, 0),
                 -1,
+            )
+
+        for point in self.point_cloud:
+
+            point_world = to_world_coordinate(
+                np.array([point]), extrinsic_matrix
+            )
+            location = location_to_camera_view(
+                point_world,
+                INTRINSIC_MATRIX,
+                sensor_inv_extrinsic_matrix,
+            )
+            back = resized_image.copy()
+            cv2.circle(
+                back,
+                (int(location[0]), int(location[1])),
+                3,
+                (0, 0, int(min(point[2], 255))),
+                -1,
+            )
+            # blend with original image
+            alpha = 0.25
+            resized_image = cv2.addWeighted(
+                resized_image, 1 - alpha, back, alpha, 0
             )
 
         for obstacle_bb in self.obstacles_bbox:
