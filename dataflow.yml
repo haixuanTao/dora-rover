@@ -5,7 +5,7 @@ communication:
 nodes:
   - id: ndt_pose
     custom:
-      run: ./ndt_pose.py
+      source: ./ndt_pose.py
       outputs:
         - position
         - imu
@@ -22,7 +22,7 @@ nodes:
 
   - id: mavros
     custom:
-      run: ./mavros_node.py
+      source: ./mavros_node.py
       inputs:
         control: pid/mavlink_control
 
