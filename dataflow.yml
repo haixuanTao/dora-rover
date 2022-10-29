@@ -10,6 +10,15 @@ nodes:
         - position
         - imu
 
+  - id: hybrid_astar
+    operator:
+      python: hybrid_astar_op.py
+      inputs:
+        position: ndt_pose/position
+        imu: ndt_pose/imu
+      outputs:
+        - waypoints
+
   - id: pid
     operator:
       python: pid_control_op.py
@@ -20,15 +29,17 @@ nodes:
         - mavlink_control
 
 
-  - id: mavros
-    custom:
-      source: ./mavros_node.py
-      inputs:
-        control: pid/mavlink_control
+#  - id: mavros
+#    custom:
+#      source: ./mavros_node.py
+#      inputs:
+#        control: pid/mavlink_control
 
   - id: plot
     operator:
-      python: physicals/plot.py
+      python: plot.py
       inputs:
         image: webcam/image
         tick: dora/timer/millis/100
+        lidar_pc: lidar/lidar_pc
+        waypoints: hybrid_astar/waypoints

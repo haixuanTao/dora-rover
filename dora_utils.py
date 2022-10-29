@@ -172,7 +172,7 @@ def location_to_camera_view(location: np.array, intrinsic_matrix, inv_extrinsic_
     return location_2D
 
 
-def lidar_to_camera_view(location: np.array, intrinsic_matrix):
+def local_points_to_camera_view(location: np.array, intrinsic_matrix):
     """Converts the given 3D vector to the view of the camera using
     the extrinsic and the intrinsic matrix.
     Args:
@@ -182,7 +182,9 @@ def lidar_to_camera_view(location: np.array, intrinsic_matrix):
         :py:class:`.Vector3D`: An instance with the coordinates converted
         to the camera view.
     """
-
+    if len(location) == 0:
+        return np.array([])
+        
     # Transform the points to 2D.
     position_2D = np.dot(intrinsic_matrix, location.T)
 

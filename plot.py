@@ -15,7 +15,7 @@ from dora_utils import (
     get_intrinsic_matrix,
     get_projection_matrix,
     location_to_camera_view,
-    lidar_to_camera_view,
+    local_points_to_camera_view,
     to_world_coordinate,
 )
 
@@ -127,11 +127,11 @@ class Operator:
             )[:, :3]
 
             # To camera coordinate
-            # The latest coordinate space is the unreal space.
+            # The latest coordinate space is the velodyne space.
             point_cloud = np.dot(
                 point_cloud,
                 np.array(
-                    [[0, 0, 1], [1, 0, 0], [0, -1, 0]]
+                    [[0, 0, 1], [-1, 0, 0], [0, -1, 0]]
                 ),
             )
             point_cloud = point_cloud[np.where(point_cloud[:, 2] > 0.1)]
@@ -150,6 +150,7 @@ class Operator:
             "tick" != dora_input["id"]
            # or isinstance(self.position, list)
             or isinstance(self.camera_frame, list)
+            or isinstance(self.point_cloud, list)
         ):
             return DoraStatus.CONTINUE
 
@@ -160,21 +161,19 @@ class Operator:
         resized_image = np.ascontiguousarray(resized_image, dtype=np.uint8)
 
         ## Drawing on frame
-
-        for waypoint in self.waypoints:
-            location = location_to_camera_view(
-                np.append(waypoint.reshape((1, -1)), [[-1]]),
-                INTRINSIC_MATRIX,
-                inv_extrinsic_matrix,
+        waypoints = local_points_to_camera_view(
+                self.waypoints,
+                INTRINSIC_MATRIX
             )
-            if location[0] > 0 and location[1] > 0:
-                cv2.circle(
+        print(waypoints)
+        for waypoint in waypoints:
+            cv2.circle(
                     resized_image,
                     (int(location[0]), int(location[1])),
                     3,
                     (255, 255, 255),
                     -1,
-                )
+            )
 
         for obstacle in self.obstacles:
             [x, y, z, _confidence, _label] = obstacle
@@ -202,27 +201,21 @@ class Operator:
                 (150, 150, 0),
                 -1,
             )
-        now = time.time()
-        locations = lidar_to_camera_view(
+
+        locations = local_points_to_camera_view(
                 self.point_cloud,
                 INTRINSIC_MATRIX
-            ).astype(int)
-        for point in locations.T:
-
-            #back = resized_image.copy()
+            )
+            
+        for index, point in enumerate(locations.T):
             cv2.circle(
                 resized_image,
-                ((point[0]), (point[1])),
+                (int(point[0]), int(point[1])),
                 3,
-                (0, 0, int(min(point[2], 255))),
+                (0, int( min(200 - point[2] * 200, 200)), int(min(point[2] * 10, 255))),
                 -1,
             )
-            # blend with original image
-            #alpha = 0.25
-            #resized_image = cv2.addWeighted(
-            #    resized_image, 1 - alpha, back, alpha, 0
-            #)
-        print(f"plotting lidar: {time.time() - now} ")
+
         for obstacle_bb in self.obstacles_bbox:
             [min_x, max_x, min_y, max_y, confidence, label] = obstacle_bb
 

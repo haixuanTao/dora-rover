@@ -1,5 +1,5 @@
 from typing import Callable
-
+import time
 import numpy as np
 from hybrid_astar_planner.HybridAStar.hybrid_astar_wrapper import (
     apply_hybrid_astar,
@@ -22,11 +22,12 @@ CAR_LENGTH = 4.0
 CAR_WIDTH = 1.8
 
 OBSTACLE_DISTANCE_WAYPOINTS_THRESHOLD = 10
-OBSTACLE_RADIUS = 1.0
+OBSTACLE_RADIUS = 0.5
 
 # Planning general
 TARGET_SPEED = 10.0
-NUM_WAYPOINTS_AHEAD = 30
+NUM_WAYPOINTS_AHEAD = 10
+GOAL_LOCATION = np.array([[2, 2]])
 
 
 def get_obstacle_list(obstacle_predictions, waypoints):
@@ -66,10 +67,11 @@ class Operator:
         self.obstacles = []
         self.position = []
         self.gps_waypoints = []
-        self.waypoints = []
+        self.waypoints = np.array([[2, 2]])
         self.obstacle_metadata = {}
         self.gps_metadata = {}
         self.metadata = {}
+        self.orientation = None
         self._hyperparameters = {
             "step_size": STEP_SIZE_HYBRID_ASTAR,
             "max_iterations": MAX_ITERATIONS_HYBRID_ASTAR,
@@ -91,15 +93,8 @@ class Operator:
         send_output: Callable[[str, bytes], None],
     ):
 
-        if dora_input["id"] == "gps_waypoints":
-            waypoints = np.frombuffer(dora_input["data"])
-            waypoints = waypoints.reshape((3, -1))
-            self.gps_waypoints = waypoints[0:2].T
-            self.gps_metadata = dora_input["metadata"]
-            if len(self.waypoints) == 0:
-                self.waypoints = self.gps_waypoints
 
-        elif dora_input["id"] == "position":
+        if dora_input["id"] == "position":
             self.position = np.frombuffer(dora_input["data"])
 
         elif dora_input["id"] == "obstacles":
@@ -107,17 +102,27 @@ class Operator:
                 (-1, 5)
             )
             self.obstacles = obstacles
-            self.obstacle_metadata = dora_input["metadata"]
 
-            if len(self.gps_waypoints) != 0:
-                (waypoints, target_speeds) = self.run(time.time())  # , open_drive)
-                self.waypoints = waypoints
+        elif "imu" == dora_input["id"]:
+            data = np.frombuffer(dora_input["data"])
+            [rx, ry, rz, rw, vx, vy, vz, ax, ay, az] = data
+            rot = R.from_quat([rx, ry, rz, rw])
+            self.orientation = rot
+            
+            return DoraStatus.CONTINUE
+        
+        if self.orientation is None:
+            return DoraStatus.CONTINUE
+        print(f"a_star: begin")
 
-                waypoints_array = np.concatenate(
-                    [waypoints.T, target_speeds.reshape(1, -1)]
-                )
+        (waypoints, target_speeds) = self.run(time.time())
+        self.waypoints = waypoints
+        print(f"a_star: {waypoints}")
 
-                send_output("waypoints", waypoints_array.tobytes(), self.metadata)
+        waypoints_array = np.concatenate(
+            [waypoints.T, target_speeds.reshape(1, -1)]
+        )
+        send_output("waypoints", waypoints_array.tobytes())
         return DoraStatus.CONTINUE
 
     def run(self, _ttd=None):
@@ -129,23 +134,6 @@ class Operator:
             planned trajectory.
         """
 
-        # Remove already past waypoints for gps
-        (index, _) = closest_vertex(
-            self.gps_waypoints,
-            np.array([self.position[:2]]),
-        )
-
-        gps_waypoints = self.gps_waypoints[index : index + NUM_WAYPOINTS_AHEAD]
-
-        # Check if the obstacles are still on gps waypoint trajectory
-        obstacle_list = get_obstacle_list(self.obstacles, self.gps_waypoints)
-
-        if len(obstacle_list) == 0:
-            # Do not use Hybrid A* if there are no obstacles.
-            speeds = np.array([TARGET_SPEED] * len(self.gps_waypoints))
-            self.metadata = self.gps_metadata
-            return self.gps_waypoints, speeds
-
         # Remove already past waypoints
         (index, _) = closest_vertex(
             self.waypoints,
@@ -156,12 +144,7 @@ class Operator:
 
         # Check if obstacles are on solved waypoints trajectory
         obstacle_list = get_obstacle_list(self.obstacles, self.waypoints)
-        self.metadata = self.obstacle_metadata
 
-        if len(obstacle_list) == 0:
-            # Do not use Hybrid A* if there are no obstacles.
-            speeds = np.array([TARGET_SPEED] * len(self.waypoints))
-            return self.waypoints, speeds
         # Hybrid a* does not take into account the driveable region.
         # It constructs search space as a top down, minimum bounding
         # rectangle with padding in each dimension.
@@ -183,36 +166,23 @@ class Operator:
             return output_wps, speeds
 
     def _compute_initial_conditions(self, obstacle_list):
-        [x, y, _, _, yaw, _, _] = self.position
+        [x, y, _, _, _, _, _] = self.position
+        [_, _, yaw] = self.orientation.as_euler("xyz", degrees=False)
+
         start = np.array(
             [
                 x,
                 y,
-                np.deg2rad(yaw),
+                yaw,
             ]
         )
-        end_index = min(
-            NUM_WAYPOINTS_AHEAD,
-            len(self.waypoints) - 1,
-        )
 
-        if end_index < 0:
-            # If no more waypoints left. Then our location is our end wp.
-            end = np.array(
-                [
-                    x,
-                    y,
-                    np.deg2rad(yaw),
-                ]
-            )
-
-        else:
-            [end_x, end_y] = self.waypoints[end_index]
-            end = np.array(
+        [end_x, end_y] = GOAL_LOCATION
+        end = np.array(
                 [
                     end_x,
                     end_y,
-                    np.deg2rad(yaw),
+                    yaw,
                 ]
             )
 
