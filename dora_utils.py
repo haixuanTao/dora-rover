@@ -184,19 +184,23 @@ def local_points_to_camera_view(location: np.array, intrinsic_matrix):
     """
     if len(location) == 0:
         return np.array([])
-        
+
     # Transform the points to 2D.
     position_2D = np.dot(intrinsic_matrix, location.T)
 
     # Normalize the 2D points.
-    location_2D = np.array(
-        [
-            (position_2D[0] / position_2D[2]),
-            (position_2D[1] / position_2D[2]),
-            (position_2D[2]),
-        ]
-    )
-    return location_2D
+    if position_2D[2].all():
+        location_2D = np.array(
+            [
+                (position_2D[0] / position_2D[2]),
+                (position_2D[1] / position_2D[2]),
+                (position_2D[2]),
+            ]
+        )
+        return location_2D
+    print("could not compute waypoints")
+    return np.array([])
+
 
 class DoraStatus(Enum):
     CONTINUE = 0

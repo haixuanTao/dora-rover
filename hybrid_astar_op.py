@@ -6,20 +6,21 @@ from hybrid_astar_planner.HybridAStar.hybrid_astar_wrapper import (
 )
 
 from dora_utils import DoraStatus, closest_vertex, pairwise_distances
+from scipy.spatial.transform import Rotation as R
 
 # Hybrid ASTAR
-STEP_SIZE_HYBRID_ASTAR = 3.0
+STEP_SIZE_HYBRID_ASTAR = 1.0
 MAX_ITERATIONS_HYBRID_ASTAR = 2000
-COMPLETION_THRESHOLD = 1.0
+COMPLETION_THRESHOLD = 0.5
 ANGLE_COMPLETION_THRESHOLD = 100
 RAD_STEP = 4.0
 RAD_UPPER_RANGE = 4.0
 RAD_LOWER_RANGE = 4.0
 OBSTACLE_CLEARANCE_HYBRID_ASTAR = 0.5
-LANE_WIDTH_HYBRID_ASTAR = 6.0
-RADIUS = 6.0
-CAR_LENGTH = 4.0
-CAR_WIDTH = 1.8
+LANE_WIDTH_HYBRID_ASTAR = 3.0
+RADIUS = 0.3
+CAR_LENGTH = 0.6
+CAR_WIDTH = 0.3
 
 OBSTACLE_DISTANCE_WAYPOINTS_THRESHOLD = 10
 OBSTACLE_RADIUS = 0.5
@@ -27,7 +28,7 @@ OBSTACLE_RADIUS = 0.5
 # Planning general
 TARGET_SPEED = 10.0
 NUM_WAYPOINTS_AHEAD = 10
-GOAL_LOCATION = np.array([[2, 2]])
+GOAL_LOCATION = np.array([3, 3])
 
 
 def get_obstacle_list(obstacle_predictions, waypoints):
@@ -93,7 +94,6 @@ class Operator:
         send_output: Callable[[str, bytes], None],
     ):
 
-
         if dora_input["id"] == "position":
             self.position = np.frombuffer(dora_input["data"])
 
@@ -108,20 +108,17 @@ class Operator:
             [rx, ry, rz, rw, vx, vy, vz, ax, ay, az] = data
             rot = R.from_quat([rx, ry, rz, rw])
             self.orientation = rot
-            
+
             return DoraStatus.CONTINUE
-        
+
         if self.orientation is None:
             return DoraStatus.CONTINUE
-        print(f"a_star: begin")
 
         (waypoints, target_speeds) = self.run(time.time())
         self.waypoints = waypoints
         print(f"a_star: {waypoints}")
 
-        waypoints_array = np.concatenate(
-            [waypoints.T, target_speeds.reshape(1, -1)]
-        )
+        waypoints_array = np.concatenate([waypoints.T, target_speeds.reshape(1, -1)])
         send_output("waypoints", waypoints_array.tobytes())
         return DoraStatus.CONTINUE
 
@@ -179,12 +176,12 @@ class Operator:
 
         [end_x, end_y] = GOAL_LOCATION
         end = np.array(
-                [
-                    end_x,
-                    end_y,
-                    yaw,
-                ]
-            )
+            [
+                end_x,
+                end_y,
+                yaw,
+            ]
+        )
 
         initial_conditions = {
             "start": start,

@@ -3,6 +3,14 @@ communication:
     prefix: /example-python-dataflow
 
 nodes:
+  - id: webcam
+    operator:
+      python: webcam.py
+      inputs:
+        tick: dora/timer/millis/100
+      outputs:
+        - image
+
   - id: ndt_pose
     custom:
       source: ./ndt_pose.py

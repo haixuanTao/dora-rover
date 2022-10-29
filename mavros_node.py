@@ -9,7 +9,7 @@ import time
 
 node = Node()
 
-TARGET_SPEED = 1100
+TARGET_SPEED = 100
 
 
 def talker():

@@ -59,6 +59,12 @@ class Operator:
                 if position[0] > 4 or position[1] > 4:
                     return DoraStatus.STOP
 
+        if "waypoints" == dora_input["id"]:
+            waypoints = np.frombuffer(dora_input["data"])
+            waypoints = waypoints.reshape((3, -1))
+            waypoints = waypoints[0:2].T
+            self.waypoints = waypoints
+
         elif "imu" == dora_input["id"]:
             data = np.frombuffer(dora_input["data"])
             [rx, ry, rz, rw, vx, vy, vz, ax, ay, az] = data

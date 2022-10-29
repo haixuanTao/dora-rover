@@ -7,11 +7,13 @@ from dora import Node
 
 node = Node()
 
+
 def callback(data):
     gen = pc2.read_points(data, skip_nans=True)
     data = np.array(list(gen))
     node.send_output("lidar_pc", data.tobytes())
 
-rospy.init_node('listener', anonymous=True)
+
+rospy.init_node("listener", anonymous=True)
 rospy.Subscriber("velodyne_points", PointCloud2, callback)
 rospy.spin()

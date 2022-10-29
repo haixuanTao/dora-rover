@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 import os
 import sys
+
 sys.path.append(os.getcwd())
 from enum import Enum
 
@@ -71,6 +72,12 @@ class Operator:
             waypoints = np.frombuffer(dora_input["data"])
             waypoints = waypoints.reshape((3, -1))
             waypoints = waypoints[0:2].T
+            waypoints = np.hstack((waypoints, -0.5 + np.zeros((waypoints.shape[0], 1)))) 
+            waypoints = np.dot(
+            waypoints,
+                np.array([[0, 0, 1], [-1, 0, 0], [0, -1, 0]]),
+            )
+            print(f"viz waypoints: {waypoints}")
             self.waypoints = waypoints
 
         elif "obstacles_bbox" == dora_input["id"]:
@@ -89,9 +96,9 @@ class Operator:
             ).reshape((-1, 7))
 
         elif "obstacles" == dora_input["id"]:
-            obstacles = np.frombuffer(
-                dora_input["data"], dtype="float32"
-            ).reshape((-1, 5))
+            obstacles = np.frombuffer(dora_input["data"], dtype="float32").reshape(
+                (-1, 5)
+            )
             self.obstacles = obstacles
 
         elif "lanes" == dora_input["id"]:
@@ -101,9 +108,9 @@ class Operator:
             self.lanes = lanes
 
         elif "drivable_area" == dora_input["id"]:
-            drivable_area = np.frombuffer(
-                dora_input["data"], dtype="int32"
-            ).reshape((1, -1, 2))
+            drivable_area = np.frombuffer(dora_input["data"], dtype="int32").reshape(
+                (1, -1, 2)
+            )
             self.drivable_area = drivable_area
 
         elif "position" == dora_input["id"]:
@@ -117,22 +124,17 @@ class Operator:
             )[0]
             self.position = np.concatenate([sensor_transform, position[3:]])
 
-
         elif dora_input["id"] == "lidar_pc":
-            point_cloud = np.frombuffer(
-                dora_input["data"]
-            )
-            point_cloud = np.reshape(
-                point_cloud, (int(point_cloud.shape[0] / 5), 5)
-            )[:, :3]
+            point_cloud = np.frombuffer(dora_input["data"])
+            point_cloud = np.reshape(point_cloud, (int(point_cloud.shape[0] / 5), 5))[
+                :, :3
+            ]
 
             # To camera coordinate
             # The latest coordinate space is the velodyne space.
             point_cloud = np.dot(
                 point_cloud,
-                np.array(
-                    [[0, 0, 1], [-1, 0, 0], [0, -1, 0]]
-                ),
+                np.array([[0, 0, 1], [-1, 0, 0], [0, -1, 0]]),
             )
             point_cloud = point_cloud[np.where(point_cloud[:, 2] > 0.1)]
             self.point_cloud = point_cloud
@@ -146,33 +148,28 @@ class Operator:
                 -1,
             )
 
-        if (
-            "tick" != dora_input["id"]
-           # or isinstance(self.position, list)
-            or isinstance(self.camera_frame, list)
-            or isinstance(self.point_cloud, list)
-        ):
+        if "tick" != dora_input["id"] or isinstance(self.camera_frame, list):
             return DoraStatus.CONTINUE
 
-        #inv_extrinsic_matrix = np.linalg.inv(
+        # inv_extrinsic_matrix = np.linalg.inv(
         #    get_extrinsic_matrix(get_projection_matrix(self.position))
-        #)
+        # )
         resized_image = self.camera_frame[:, :, :3]
         resized_image = np.ascontiguousarray(resized_image, dtype=np.uint8)
 
         ## Drawing on frame
+
         waypoints = local_points_to_camera_view(
-                self.waypoints,
-                INTRINSIC_MATRIX
-            )
-        print(waypoints)
+            self.waypoints,
+            INTRINSIC_MATRIX,
+        ).T
         for waypoint in waypoints:
             cv2.circle(
-                    resized_image,
-                    (int(location[0]), int(location[1])),
-                    3,
-                    (255, 255, 255),
-                    -1,
+                resized_image,
+                (int(waypoint[0]), int(waypoint[1])),
+                3,
+                (int(min(200 - waypoint[2] * 100, 200)), int(min(waypoint[2], 255)), 255),
+                -1,
             )
 
         for obstacle in self.obstacles:
@@ -202,17 +199,14 @@ class Operator:
                 -1,
             )
 
-        locations = local_points_to_camera_view(
-                self.point_cloud,
-                INTRINSIC_MATRIX
-            )
-            
+        locations = local_points_to_camera_view(self.point_cloud, INTRINSIC_MATRIX)
+
         for index, point in enumerate(locations.T):
             cv2.circle(
                 resized_image,
                 (int(point[0]), int(point[1])),
                 3,
-                (0, int( min(200 - point[2] * 200, 200)), int(min(point[2] * 10, 255))),
+                (0, int(min(200 - point[2] * 200, 200)), int(min(point[2] * 10, 255))),
                 -1,
             )
 
@@ -268,9 +262,7 @@ class Operator:
 
             # blend with original image
             alpha = 0.25
-            resized_image = cv2.addWeighted(
-                resized_image, 1 - alpha, back, alpha, 0
-            )
+            resized_image = cv2.addWeighted(resized_image, 1 - alpha, back, alpha, 0)
 
         now = time.time()
         # cv2.putText(

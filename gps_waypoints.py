@@ -5,13 +5,13 @@ import numpy as np
 from dora_utils import DoraStatus, closest_vertex
 import os
 import sys
+
 sys.path.append(os.getcwd())
 
 
 # Planning general
 NUM_WAYPOINTS_AHEAD = 0
-GOAL_LOCATION = np.array([[2, 2]])
-
+GOAL_LOCATION = np.array([[3, 3]])
 
 
 class Operator:
@@ -39,9 +39,7 @@ class Operator:
             )
 
             self.waypoints = self.waypoints[index : index + NUM_WAYPOINTS_AHEAD]
-            self.target_speeds = self.target_speeds[
-                index : index + NUM_WAYPOINTS_AHEAD
-            ]
+            self.target_speeds = self.target_speeds[index : index + NUM_WAYPOINTS_AHEAD]
 
         if len(self.waypoints) < NUM_WAYPOINTS_AHEAD / 2:
 
