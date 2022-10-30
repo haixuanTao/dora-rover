@@ -11,11 +11,11 @@ from scipy.spatial.transform import Rotation as R
 # Hybrid ASTAR
 STEP_SIZE_HYBRID_ASTAR = 1.0
 MAX_ITERATIONS_HYBRID_ASTAR = 2000
-COMPLETION_THRESHOLD = 0.5
-ANGLE_COMPLETION_THRESHOLD = 100
-RAD_STEP = 4.0
-RAD_UPPER_RANGE = 4.0
-RAD_LOWER_RANGE = 4.0
+COMPLETION_THRESHOLD = 0.2
+ANGLE_COMPLETION_THRESHOLD = 4
+RAD_STEP = 0.3
+RAD_UPPER_RANGE = 4
+RAD_LOWER_RANGE = 4
 OBSTACLE_CLEARANCE_HYBRID_ASTAR = 0.5
 LANE_WIDTH_HYBRID_ASTAR = 3.0
 RADIUS = 0.3
@@ -28,7 +28,7 @@ OBSTACLE_RADIUS = 0.5
 # Planning general
 TARGET_SPEED = 10.0
 NUM_WAYPOINTS_AHEAD = 10
-GOAL_LOCATION = np.array([3, 3])
+GOAL_LOCATION = np.array([0, 10])
 
 
 def get_obstacle_list(obstacle_predictions, waypoints):
@@ -68,7 +68,7 @@ class Operator:
         self.obstacles = []
         self.position = []
         self.gps_waypoints = []
-        self.waypoints = np.array([[2, 2]])
+        self.waypoints = np.array([[0, 0]])
         self.obstacle_metadata = {}
         self.gps_metadata = {}
         self.metadata = {}
@@ -103,22 +103,12 @@ class Operator:
             )
             self.obstacles = obstacles
 
-        elif "imu" == dora_input["id"]:
-            data = np.frombuffer(dora_input["data"])
-            [rx, ry, rz, rw, vx, vy, vz, ax, ay, az] = data
-            rot = R.from_quat([rx, ry, rz, rw])
-            self.orientation = rot
+        if self.waypoints.shape[0] < 3:
+            (waypoints, target_speeds) = self.run(time.time())
+            self.waypoints = waypoints
+            self.target_speeds = target_speeds
 
-            return DoraStatus.CONTINUE
-
-        if self.orientation is None:
-            return DoraStatus.CONTINUE
-
-        (waypoints, target_speeds) = self.run(time.time())
-        self.waypoints = waypoints
-        print(f"a_star: {waypoints}")
-
-        waypoints_array = np.concatenate([waypoints.T, target_speeds.reshape(1, -1)])
+        waypoints_array = np.concatenate([self.waypoints.T, self.target_speeds.reshape(1, -1)])
         send_output("waypoints", waypoints_array.tobytes())
         return DoraStatus.CONTINUE
 
@@ -154,6 +144,7 @@ class Operator:
 
         if not success:
             print("could not find waypoints")
+            print(f"initial conditions: {initial_conditions}")
             speeds = np.array([0] * len(self.waypoints))
             return self.waypoints, speeds
         else:
@@ -163,8 +154,9 @@ class Operator:
             return output_wps, speeds
 
     def _compute_initial_conditions(self, obstacle_list):
-        [x, y, _, _, _, _, _] = self.position
-        [_, _, yaw] = self.orientation.as_euler("xyz", degrees=False)
+        [x, y, _, rx, ry, rz, rw] = self.position
+        orientation = R.from_quat([rx, ry, rz, rw])
+        [_, _, yaw] = orientation.as_euler("xyz", degrees=False)
 
         start = np.array(
             [

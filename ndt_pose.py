@@ -7,27 +7,35 @@ from geometry_msgs.msg import PoseStamped
 import numpy as np
 from dora import Node
 import time
+from scipy.spatial.transform import Rotation as R
 
 node = Node()
+initial_orientation = None
+orientation = None
 
 
 def imu_callback(data):
-    imu_data = np.array(
-        [
-            data.orientation.x,
-            data.orientation.y,
-            data.orientation.z,
-            data.orientation.w,
-            data.angular_velocity.x,
-            data.angular_velocity.y,
-            data.angular_velocity.z,
-            data.linear_acceleration.x,
-            data.linear_acceleration.y,
-            data.linear_acceleration.z,
-        ]
-    )
 
-    node.send_output("imu", imu_data.tobytes())
+    global initial_orientation
+    global orientation
+
+    if initial_orientation is None:
+        initial_orientation = R.from_quat(
+            [
+                data.orientation.x,
+                data.orientation.y,
+                data.orientation.z,
+                data.orientation.w,
+            ]
+        )
+    orientation = [
+        data.orientation.x,
+        data.orientation.y,
+        data.orientation.z,
+        data.orientation.w,
+    ]
+
+    # node.send_output("imu", orientation.tobytes())
 
 
 start = time.time()
@@ -35,19 +43,22 @@ start = time.time()
 
 def pose_callback(data):
     global start
+    global initial_orientation
+    global orientation
     position = np.array(
         [
             data.pose.position.x,
             data.pose.position.y,
             data.pose.position.z,
-            data.pose.orientation.x,
-            data.pose.orientation.y,
-            data.pose.orientation.z,
-            data.pose.orientation.w,
         ]
     )
+    if initial_orientation is None:
+        return None
 
-    if time.time() - start > 1:
+    position = initial_orientation.apply(position)
+    position = np.concatenate([position, orientation])
+
+    if time.time() - start > 0.5:
         node.send_output("position", position.tobytes())
         start = time.time()
 

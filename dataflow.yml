@@ -1,7 +1,7 @@
 communication:
-  zenoh:
-    prefix: /example-python-dataflow
-
+  iceoryx:
+    app_name_prefix: dora-iceoryx-example
+    
 nodes:
   - id: webcam
     operator:
@@ -23,7 +23,6 @@ nodes:
       python: hybrid_astar_op.py
       inputs:
         position: ndt_pose/position
-        imu: ndt_pose/imu
       outputs:
         - waypoints
 
@@ -32,16 +31,15 @@ nodes:
       python: pid_control_op.py
       inputs:
         position: ndt_pose/position
-        imu: ndt_pose/imu
+        waypoints: hybrid_astar/waypoints
       outputs:
         - mavlink_control
 
-
-#  - id: mavros
-#    custom:
-#      source: ./mavros_node.py
-#      inputs:
-#        control: pid/mavlink_control
+  - id: mavros
+    custom:
+      source: ./mavros_node.py
+      inputs:
+        control: pid/mavlink_control
 
   - id: plot
     operator:
@@ -51,3 +49,4 @@ nodes:
         tick: dora/timer/millis/100
         lidar_pc: lidar/lidar_pc
         waypoints: hybrid_astar/waypoints
+        position: ndt_pose/position

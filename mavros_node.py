@@ -17,7 +17,6 @@ def talker():
     rospy.init_node("talker", anonymous=True)
     for input_id, value, metadata in node:
         [angle] = np.frombuffer(value)
-        print(f"vel: {angle}")
         target = OverrideRCIn()
         if angle < np.pi / 2 and angle > -np.pi / 2:
             target_rotation = int((-angle + np.pi / 2) / (np.pi) * 1000) + 1000

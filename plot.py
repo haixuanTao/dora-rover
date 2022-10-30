@@ -72,12 +72,7 @@ class Operator:
             waypoints = np.frombuffer(dora_input["data"])
             waypoints = waypoints.reshape((3, -1))
             waypoints = waypoints[0:2].T
-            waypoints = np.hstack((waypoints, -0.5 + np.zeros((waypoints.shape[0], 1)))) 
-            waypoints = np.dot(
-            waypoints,
-                np.array([[0, 0, 1], [-1, 0, 0], [0, -1, 0]]),
-            )
-            print(f"viz waypoints: {waypoints}")
+            waypoints = np.hstack((waypoints, -0.4 + np.zeros((waypoints.shape[0], 1))))
             self.waypoints = waypoints
 
         elif "obstacles_bbox" == dora_input["id"]:
@@ -115,14 +110,7 @@ class Operator:
 
         elif "position" == dora_input["id"]:
             # Add sensor transform
-            position = np.frombuffer(dora_input["data"])[:6]
-            projection_matrix = get_projection_matrix(position)
-            extrinsic_matrix = get_extrinsic_matrix(projection_matrix)
-
-            sensor_transform = to_world_coordinate(
-                np.array([[3.0, 0, 1.0]]), extrinsic_matrix
-            )[0]
-            self.position = np.concatenate([sensor_transform, position[3:]])
+            self.position = np.frombuffer(dora_input["data"])
 
         elif dora_input["id"] == "lidar_pc":
             point_cloud = np.frombuffer(dora_input["data"])
@@ -148,27 +136,34 @@ class Operator:
                 -1,
             )
 
-        if "tick" != dora_input["id"] or isinstance(self.camera_frame, list):
+        if (
+            "tick" != dora_input["id"]
+            or isinstance(self.camera_frame, list)
+            or isinstance(self.position, list)
+        ):
             return DoraStatus.CONTINUE
 
-        # inv_extrinsic_matrix = np.linalg.inv(
-        #    get_extrinsic_matrix(get_projection_matrix(self.position))
-        # )
+        inv_extrinsic_matrix = np.linalg.inv(
+            get_extrinsic_matrix(get_projection_matrix(self.position))
+        )
         resized_image = self.camera_frame[:, :, :3]
         resized_image = np.ascontiguousarray(resized_image, dtype=np.uint8)
 
         ## Drawing on frame
-
-        waypoints = local_points_to_camera_view(
-            self.waypoints,
-            INTRINSIC_MATRIX,
+        waypoints = location_to_camera_view(
+            self.waypoints, INTRINSIC_MATRIX, inv_extrinsic_matrix
         ).T
+
         for waypoint in waypoints:
             cv2.circle(
                 resized_image,
                 (int(waypoint[0]), int(waypoint[1])),
                 3,
-                (int(min(200 - waypoint[2] * 100, 200)), int(min(waypoint[2], 255)), 255),
+                (
+                    int(min(200 - waypoint[2] * 100, 200)),
+                    int(min(waypoint[2], 255)),
+                    255,
+                ),
                 -1,
             )
 

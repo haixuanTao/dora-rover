@@ -53,35 +53,23 @@ class Operator:
         """
 
         if "position" == dora_input["id"]:
-            if self.initial_orientation is not None:
-                position = np.frombuffer(dora_input["data"])[:3]
-                self.position = self.initial_orientation.apply(position)
-                if position[0] > 4 or position[1] > 4:
-                    return DoraStatus.STOP
+            self.position = np.frombuffer(dora_input["data"])
 
-        if "waypoints" == dora_input["id"]:
+            if self.position[0] > 6 or self.position[1] > 6:
+                return DoraStatus.STOP
+            return DoraStatus.CONTINUE
+
+        elif "waypoints" == dora_input["id"]:
             waypoints = np.frombuffer(dora_input["data"])
             waypoints = waypoints.reshape((3, -1))
             waypoints = waypoints[0:2].T
             self.waypoints = waypoints
 
-        elif "imu" == dora_input["id"]:
-            data = np.frombuffer(dora_input["data"])
-            [rx, ry, rz, rw, vx, vy, vz, ax, ay, az] = data
-            rot = R.from_quat([rx, ry, rz, rw])
-
-            if self.initial_orientation is None:
-                self.initial_orientation = rot
-
-            self.orientation = rot
-
-            return DoraStatus.CONTINUE
-
         if len(self.position) == 0:
             return DoraStatus.CONTINUE
 
-        [x, y, z] = self.position
-        [_, _, yaw] = self.orientation.as_euler("xyz", degrees=True)
+        [x, y, z, rx, ry, rz, rw] = self.position
+        [_, _, yaw] = R.from_quat([rx, ry, rz, rw]).as_euler("xyz", degrees=True)
         distances = pairwise_distances(self.waypoints, np.array([[x, y]])).T[0]
 
         index = distances > MIN_PID_WAYPOINT_DISTANCE
@@ -92,7 +80,7 @@ class Operator:
         if len(self.waypoints) == 0:
             target_angle = 0
             target_speed = 0
-            self.waypoints = np.array([[0, 1]])
+            print("no more waypoints in pid")
             return DoraStatus.STOP
         else:
             argmin_distance = np.argmin(distances)
@@ -119,9 +107,7 @@ class Operator:
         # print(f"position: {x, y, yaw}, target: {target_location}, vec: {target_vector}")
         # print(f"steer: angle: {target_angle} x: {np.cos(target_angle)}, y: {np.sin(target_angle)}")
 
-        data = np.array([angle])
-        print(
-            f"abs: {math.degrees(target_abs_angle)}, rel: {math.degrees(angle)}, current: {(yaw)}"
-        )
-        send_output("mavlink_control", data.tobytes())
-        return DoraStatus.CONTINUE
+            data = np.array([angle])
+
+            send_output("mavlink_control", data.tobytes())
+            return DoraStatus.CONTINUE
