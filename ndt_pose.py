@@ -28,6 +28,7 @@ def imu_callback(data):
                 data.orientation.w,
             ]
         )
+        print(f"INITIAL ORIENTATION: {initial_orientation.as_euler('xyz', degrees=True)}")
     orientation = [
         data.orientation.x,
         data.orientation.y,

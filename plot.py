@@ -8,7 +8,7 @@ import sys
 
 sys.path.append(os.getcwd())
 from enum import Enum
-
+from scipy.spatial.transform import Rotation as R
 from dora_utils import (
     LABELS,
     DoraStatus,
@@ -37,10 +37,10 @@ writer = cv2.VideoWriter(
 )
 
 font = cv2.FONT_HERSHEY_SIMPLEX
-bottomLeftCornerOfText = (10, 500)
-fontScale = 1
-fontColor = (255, 255, 255)
-thickness = 1
+bottomLeftCornerOfText = (10, 30)
+fontScale = 0.7
+fontColor = (255, 0, 255)
+thickness = 2
 lineType = 2
 
 
@@ -61,6 +61,7 @@ class Operator:
         self.camera_frame = []
         self.traffic_sign_bbox = []
         self.point_cloud = []
+        self.control = []
 
     def on_input(
         self,
@@ -74,6 +75,9 @@ class Operator:
             waypoints = waypoints[0:2].T
             waypoints = np.hstack((waypoints, -0.4 + np.zeros((waypoints.shape[0], 1))))
             self.waypoints = waypoints
+
+        elif "control" == dora_input["id"]:
+            self.control = np.frombuffer(dora_input["data"])
 
         elif "obstacles_bbox" == dora_input["id"]:
             self.obstacles_bbox = np.frombuffer(
@@ -258,20 +262,31 @@ class Operator:
             # blend with original image
             alpha = 0.25
             resized_image = cv2.addWeighted(resized_image, 1 - alpha, back, alpha, 0)
+        [x, y, z, rx, ry, rz, rw] = self.position
+        [_, _, yaw] = R.from_quat([rx, ry, rz, rw]).as_euler("xyz", degrees=True)
+ 
+        cv2.putText(
+        resized_image,
+        f"""cur: x: {x:.2f}, y: {y:.2f}, yaw: {yaw:.2f}""",
+        (10, 30),
+        font,
+        fontScale,
+        fontColor,
+        thickness,
+        lineType,
+        )
+        
+        cv2.putText(
+        resized_image,
+        f"""ctl: steering: {np.degrees(self.control[0]):.2f} """,
+        (10, 55),
+        font,
+        fontScale,
+        fontColor,
+        thickness,
+        lineType,
+        )
 
-        now = time.time()
-        # cv2.putText(
-        # resized_image,
-        # f"Hertz {1 / (now - self.last_timestamp):.2f}",
-        # bottomLeftCornerOfText,
-        # font,
-        # fontScale,
-        # fontColor,
-        # thickness,
-        # lineType,
-        # )
-
-        self.last_timestamp = now
         writer.write(resized_image)
         cv2.imshow("image", resized_image)
         cv2.waitKey(1)

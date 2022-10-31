@@ -9,7 +9,7 @@ import time
 
 node = Node()
 
-TARGET_SPEED = 100
+TARGET_SPEED = 1100
 
 
 def talker():
@@ -19,12 +19,12 @@ def talker():
         [angle] = np.frombuffer(value)
         target = OverrideRCIn()
         if angle < np.pi / 2 and angle > -np.pi / 2:
-            target_rotation = int((-angle + np.pi / 2) / (np.pi) * 1000) + 1000
+            target_rotation = int((angle + np.pi / 2) / (np.pi) * 1000) + 1000
             print(f"target rotation: {target_rotation}")
             target.channels[0] = target_rotation
             target.channels[2] = TARGET_SPEED
-        elif angle > np.pi / 2:
-            target_rotation = 0
+        elif angle < -np.pi / 2:
+            target_rotation = 1000
             target.channels[0] = target_rotation
             target.channels[2] = TARGET_SPEED
         else:

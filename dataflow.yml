@@ -33,13 +33,13 @@ nodes:
         position: ndt_pose/position
         waypoints: hybrid_astar/waypoints
       outputs:
-        - mavlink_control
+        - control
 
-  - id: mavros
-    custom:
-      source: ./mavros_node.py
-      inputs:
-        control: pid/mavlink_control
+  #- id: mavros
+    #custom:
+      #source: ./mavros_node.py
+      #inputs:
+        #control: pid/control
 
   - id: plot
     operator:
@@ -50,3 +50,4 @@ nodes:
         lidar_pc: lidar/lidar_pc
         waypoints: hybrid_astar/waypoints
         position: ndt_pose/position
+        control: pid/control

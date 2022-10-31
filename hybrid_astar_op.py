@@ -11,24 +11,24 @@ from scipy.spatial.transform import Rotation as R
 # Hybrid ASTAR
 STEP_SIZE_HYBRID_ASTAR = 1.0
 MAX_ITERATIONS_HYBRID_ASTAR = 2000
-COMPLETION_THRESHOLD = 0.2
+COMPLETION_THRESHOLD = 1
 ANGLE_COMPLETION_THRESHOLD = 4
 RAD_STEP = 0.3
 RAD_UPPER_RANGE = 4
 RAD_LOWER_RANGE = 4
-OBSTACLE_CLEARANCE_HYBRID_ASTAR = 0.5
+OBSTACLE_CLEARANCE_HYBRID_ASTAR = 0.2
 LANE_WIDTH_HYBRID_ASTAR = 3.0
 RADIUS = 0.3
 CAR_LENGTH = 0.6
 CAR_WIDTH = 0.3
 
-OBSTACLE_DISTANCE_WAYPOINTS_THRESHOLD = 10
+OBSTACLE_DISTANCE_WAYPOINTS_THRESHOLD = 3
 OBSTACLE_RADIUS = 0.5
 
 # Planning general
 TARGET_SPEED = 10.0
 NUM_WAYPOINTS_AHEAD = 10
-GOAL_LOCATION = np.array([0, 10])
+GOAL_LOCATION = np.array([0, 2])
 
 
 def get_obstacle_list(obstacle_predictions, waypoints):
@@ -65,7 +65,7 @@ class Operator:
     """
 
     def __init__(self):
-        self.obstacles = []
+        self.obstacles = np.array([])
         self.position = []
         self.gps_waypoints = []
         self.waypoints = np.array([[0, 0]])
@@ -103,10 +103,11 @@ class Operator:
             )
             self.obstacles = obstacles
 
-        if self.waypoints.shape[0] < 3:
-            (waypoints, target_speeds) = self.run(time.time())
-            self.waypoints = waypoints
-            self.target_speeds = target_speeds
+        (waypoints, target_speeds) = self.run(time.time())
+        if len(waypoints) == 0:
+            return DoraStatus.STOP
+        self.waypoints = waypoints
+        self.target_speeds = target_speeds
 
         waypoints_array = np.concatenate([self.waypoints.T, self.target_speeds.reshape(1, -1)])
         send_output("waypoints", waypoints_array.tobytes())
@@ -131,6 +132,10 @@ class Operator:
 
         # Check if obstacles are on solved waypoints trajectory
         obstacle_list = get_obstacle_list(self.obstacles, self.waypoints)
+        if len(obstacle_list) == 0 and self.waypoints.shape[0] >3:
+            # Do not use Hybrid A* if there are no obstacles.
+            speeds = np.array([TARGET_SPEED] * len(self.waypoints))
+            return self.waypoints, speeds
 
         # Hybrid a* does not take into account the driveable region.
         # It constructs search space as a top down, minimum bounding
@@ -146,7 +151,7 @@ class Operator:
             print("could not find waypoints")
             print(f"initial conditions: {initial_conditions}")
             speeds = np.array([0] * len(self.waypoints))
-            return self.waypoints, speeds
+            return [], []
         else:
             output_wps = np.array([path_x, path_y]).T
             speeds = np.array([TARGET_SPEED] * len(path_x))

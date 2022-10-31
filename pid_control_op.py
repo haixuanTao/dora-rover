@@ -27,6 +27,7 @@ class DoraStatus(Enum):
     STOP = 1
 
 
+
 class Operator:
     """
     Compute a `control` based on the position and the waypoints of the car.
@@ -52,11 +53,12 @@ class Operator:
             send_output (Callable[[str, bytes]]): Function enabling sending output back to dora.
         """
 
+
         if "position" == dora_input["id"]:
             self.position = np.frombuffer(dora_input["data"])
 
-            if self.position[0] > 6 or self.position[1] > 6:
-                return DoraStatus.STOP
+            #if self.position[0] > 6 or self.position[1] > 6:
+            #    return DoraStatus.STOP
             return DoraStatus.CONTINUE
 
         elif "waypoints" == dora_input["id"]:
@@ -104,10 +106,10 @@ class Operator:
         # )
 
         # steer = radians_to_steer(target_angle, STEER_GAIN)
-        # print(f"position: {x, y, yaw}, target: {target_location}, vec: {target_vector}")
+            # print(f"position: {x, y, yaw}, target: {target_location}, vec: {target_vector}")
         # print(f"steer: angle: {target_angle} x: {np.cos(target_angle)}, y: {np.sin(target_angle)}")
 
-            data = np.array([angle])
+            data = np.array([-angle])
 
-            send_output("mavlink_control", data.tobytes())
+            send_output("control", data.tobytes())
             return DoraStatus.CONTINUE
