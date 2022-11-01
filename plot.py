@@ -264,28 +264,29 @@ class Operator:
             resized_image = cv2.addWeighted(resized_image, 1 - alpha, back, alpha, 0)
         [x, y, z, rx, ry, rz, rw] = self.position
         [_, _, yaw] = R.from_quat([rx, ry, rz, rw]).as_euler("xyz", degrees=True)
- 
+
         cv2.putText(
-        resized_image,
-        f"""cur: x: {x:.2f}, y: {y:.2f}, yaw: {yaw:.2f}""",
-        (10, 30),
-        font,
-        fontScale,
-        fontColor,
-        thickness,
-        lineType,
+            resized_image,
+            f"""cur: x: {x:.2f}, y: {y:.2f}, yaw: {yaw:.2f}""",
+            (10, 30),
+            font,
+            fontScale,
+            fontColor,
+            thickness,
+            lineType,
         )
-        
-        cv2.putText(
-        resized_image,
-        f"""ctl: steering: {np.degrees(self.control[0]):.2f} """,
-        (10, 55),
-        font,
-        fontScale,
-        fontColor,
-        thickness,
-        lineType,
-        )
+
+        if len(self.control) != 0:
+            cv2.putText(
+                resized_image,
+                f"""ctl: {np.degrees(self.control[0]):.2f} """,
+                (10, 55),
+                font,
+                fontScale,
+                fontColor,
+                thickness,
+                lineType,
+            )
 
         writer.write(resized_image)
         cv2.imshow("image", resized_image)

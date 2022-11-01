@@ -27,7 +27,6 @@ class DoraStatus(Enum):
     STOP = 1
 
 
-
 class Operator:
     """
     Compute a `control` based on the position and the waypoints of the car.
@@ -53,25 +52,24 @@ class Operator:
             send_output (Callable[[str, bytes]]): Function enabling sending output back to dora.
         """
 
-
         if "position" == dora_input["id"]:
             self.position = np.frombuffer(dora_input["data"])
 
-            #if self.position[0] > 6 or self.position[1] > 6:
+            # if self.position[0] > 6 or self.position[1] > 6:
             #    return DoraStatus.STOP
             return DoraStatus.CONTINUE
 
         elif "waypoints" == dora_input["id"]:
             waypoints = np.frombuffer(dora_input["data"])
-            waypoints = waypoints.reshape((3, -1))
-            waypoints = waypoints[0:2].T
+            waypoints = waypoints.reshape((-1, 3))
+            waypoints = waypoints[:, :2]
             self.waypoints = waypoints
 
         if len(self.position) == 0:
             return DoraStatus.CONTINUE
 
         [x, y, z, rx, ry, rz, rw] = self.position
-        [_, _, yaw] = R.from_quat([rx, ry, rz, rw]).as_euler("xyz", degrees=True)
+        [_, _, yaw] = R.from_quat([rx, ry, rz, rw]).as_euler("xyz", degrees=False)
         distances = pairwise_distances(self.waypoints, np.array([[x, y]])).T[0]
 
         index = distances > MIN_PID_WAYPOINT_DISTANCE
@@ -95,19 +93,19 @@ class Operator:
             ## Compute the angle of steering
             target_vector = target_location - [x, y]
             target_abs_angle = math.atan2(target_vector[1], target_vector[0])
-            angle = target_abs_angle - math.radians(yaw)
+            angle = target_abs_angle - yaw
             if angle > math.pi:
                 angle -= 2 * math.pi
             elif angle < -math.pi:
                 angle += 2 * math.pi
 
-        # throttle, brake = compute_throttle_and_brake(
-        #     pid, current_speed, target_speed
-        # )
+            # throttle, brake = compute_throttle_and_brake(
+            #     pid, current_speed, target_speed
+            # )
 
-        # steer = radians_to_steer(target_angle, STEER_GAIN)
-            # print(f"position: {x, y, yaw}, target: {target_location}, vec: {target_vector}")
-        # print(f"steer: angle: {target_angle} x: {np.cos(target_angle)}, y: {np.sin(target_angle)}")
+            # steer = radians_to_steer(target_angle, STEER_GAIN)
+            print(f"position: {x, y, yaw}, target: {target_location}, vec: {target_vector}")
+            # print(f"steer: angle: {target_angle} x: {np.cos(target_angle)}, y: {np.sin(target_angle)}")
 
             data = np.array([-angle])
 

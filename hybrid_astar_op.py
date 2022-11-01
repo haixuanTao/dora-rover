@@ -13,12 +13,12 @@ STEP_SIZE_HYBRID_ASTAR = 1.0
 MAX_ITERATIONS_HYBRID_ASTAR = 2000
 COMPLETION_THRESHOLD = 1
 ANGLE_COMPLETION_THRESHOLD = 4
-RAD_STEP = 0.3
+RAD_STEP = 0.1
 RAD_UPPER_RANGE = 4
 RAD_LOWER_RANGE = 4
 OBSTACLE_CLEARANCE_HYBRID_ASTAR = 0.2
-LANE_WIDTH_HYBRID_ASTAR = 3.0
-RADIUS = 0.3
+LANE_WIDTH_HYBRID_ASTAR = 5.0
+RADIUS = 0.1
 CAR_LENGTH = 0.6
 CAR_WIDTH = 0.3
 
@@ -109,7 +109,9 @@ class Operator:
         self.waypoints = waypoints
         self.target_speeds = target_speeds
 
-        waypoints_array = np.concatenate([self.waypoints.T, self.target_speeds.reshape(1, -1)])
+        waypoints_array = np.concatenate(
+            [self.waypoints.T, self.target_speeds.reshape(1, -1)]
+        )
         send_output("waypoints", waypoints_array.tobytes())
         return DoraStatus.CONTINUE
 
@@ -132,7 +134,7 @@ class Operator:
 
         # Check if obstacles are on solved waypoints trajectory
         obstacle_list = get_obstacle_list(self.obstacles, self.waypoints)
-        if len(obstacle_list) == 0 and self.waypoints.shape[0] >3:
+        if len(obstacle_list) == 0 and self.waypoints.shape[0] > 3:
             # Do not use Hybrid A* if there are no obstacles.
             speeds = np.array([TARGET_SPEED] * len(self.waypoints))
             return self.waypoints, speeds
