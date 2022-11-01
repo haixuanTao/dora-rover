@@ -9,7 +9,7 @@ from sklearn.metrics import pairwise_distances
 from enum import Enum
 from scipy.spatial.transform import Rotation as R
 
-MIN_PID_WAYPOINT_DISTANCE = 0.3
+MIN_PID_WAYPOINT_DISTANCE = 0.7
 STEER_GAIN = 0.7
 COAST_FACTOR = 1.75
 pid_p = 1.0

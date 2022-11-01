@@ -9,7 +9,7 @@ from scipy.spatial.transform import Rotation as R
 # Planning general
 TARGET_SPEED = 2
 NUM_WAYPOINTS_AHEAD = 10
-GOAL_LOCATION = np.array([[0, 0], [0, 5]])
+GOAL_LOCATION = np.array([[0, 0], [4, 0]])
 
 OBSTACLE_CLEARANCE = 0.1
 
@@ -104,15 +104,7 @@ class Operator:
         [_, _, yaw] = R.from_quat([rx, ry, rz, rw]).as_euler("xyz", degrees=False)
 
 
-        # Remove already past waypoints
-        if len(self.gps_waypoints) != 0:
-            (index, _) = closest_vertex(
-                self.gps_waypoints,
-            np.array([self.position[:2]]),
-        )
 
-            self.gps_waypoints = self.gps_waypoints[index:]
-        
 
         gps_obstacles = get_obstacle_list(self.obstacles, self.gps_waypoints)
 
@@ -121,7 +113,7 @@ class Operator:
             "ps": self.conds["s0"],
             "target_speed": self.conds["target_speed"],
             "pos": self.position[:2],
-            "vel": 1 * np.array([np.cos(yaw), np.sin(yaw)]),
+            "vel": np.array([1, 0]),
             "wp": self.gps_waypoints,
             "obs": gps_obstacles,
         }
@@ -147,8 +139,7 @@ class Operator:
             print("fot failed. stopping.")
             return DoraStatus.STOP
 
-        self.waypoints = np.concatenate([result_x[1:], result_y[1:]]).T
-        self.outputs = np.concatenate([result_x[1:], result_y[1:], speeds[1:]]).T
-
+        self.waypoints = np.concatenate([result_x, result_y]).reshape((2,-1)).T
+        self.outputs = np.concatenate([result_x, result_y, speeds]).reshape((3,-1)).T
         send_output("waypoints", self.outputs.tobytes())
         return DoraStatus.CONTINUE

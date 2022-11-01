@@ -61,7 +61,7 @@ def pose_callback(data):
     position = initial_orientation.apply(position)
     position = np.concatenate([position, orientation])
 
-    if time.time() - start > 0.5:
+    if time.time() - start > 1:
         node.send_output("position", position.tobytes())
         start = time.time()
 
