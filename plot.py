@@ -71,8 +71,8 @@ class Operator:
 
         if "waypoints" == dora_input["id"]:
             waypoints = np.frombuffer(dora_input["data"])
-            waypoints = waypoints.reshape((3, -1))
-            waypoints = waypoints[0:2].T
+            waypoints = waypoints.reshape((-1, 3))
+            waypoints = waypoints[:, :2]
             waypoints = np.hstack((waypoints, -0.4 + np.zeros((waypoints.shape[0], 1))))
             self.waypoints = waypoints
 

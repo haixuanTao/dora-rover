@@ -9,6 +9,12 @@ from sklearn.metrics import pairwise_distances
 from enum import Enum
 from scipy.spatial.transform import Rotation as R
 
+import os
+import sys
+
+sys.path.append(os.getcwd())
+from fot_op import GOAL_LOCATION
+from dora_utils import distance_vertex
 MIN_PID_WAYPOINT_DISTANCE = 0.7
 STEER_GAIN = 0.7
 COAST_FACTOR = 1.75
@@ -68,6 +74,7 @@ class Operator:
         if len(self.position) == 0:
             return DoraStatus.CONTINUE
 
+
         [x, y, z, rx, ry, rz, rw] = self.position
         [_, _, yaw] = R.from_quat([rx, ry, rz, rw]).as_euler("xyz", degrees=False)
         distances = pairwise_distances(self.waypoints, np.array([[x, y]])).T[0]
@@ -81,6 +88,9 @@ class Operator:
             target_angle = 0
             target_speed = 0
             print("no more waypoints in pid")
+            return DoraStatus.STOP
+        elif distance_vertex(GOAL_LOCATION[-1], self.position) < MIN_PID_WAYPOINT_DISTANCE:
+            print("position close enough to end goal")
             return DoraStatus.STOP
         else:
             argmin_distance = np.argmin(distances)

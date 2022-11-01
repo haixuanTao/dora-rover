@@ -8,7 +8,7 @@ from scipy.spatial.transform import Rotation as R
 
 
 def distance_vertex(left_vertix: np.array, right_vertix: np.array) -> np.array:
-    return np.linalg.norm(left_vertix[:3] - right_vertix[:3])
+    return np.linalg.norm(left_vertix[:2] - right_vertix[:2])
 
 
 def distance_points(left_point: np.array, right_point: np.array) -> np.array:

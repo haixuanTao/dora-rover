@@ -7,9 +7,9 @@ from scipy.spatial.transform import Rotation as R
 
 
 # Planning general
-TARGET_SPEED = 2
+TARGET_SPEED = 1
 NUM_WAYPOINTS_AHEAD = 10
-GOAL_LOCATION = np.array([[0, 0], [4, 0]])
+GOAL_LOCATION = np.array([[0, 0], [0, 1.5], [3, 1.5]])
 
 OBSTACLE_CLEARANCE = 0.1
 
@@ -110,14 +110,13 @@ class Operator:
 
         
         initial_conditions = {
-            "ps": self.conds["s0"],
+            "ps": 0,
             "target_speed": self.conds["target_speed"],
             "pos": self.position[:2],
-            "vel": np.array([1, 0]),
+            "vel": np.array([np.cos(yaw), np.sin(yaw)]),
             "wp": self.gps_waypoints,
             "obs": gps_obstacles,
         }
-        print(initial_conditions)
 
         (
             result_x,
@@ -134,7 +133,6 @@ class Operator:
             costs,
             success,
         ) = fot_wrapper.run_fot(initial_conditions, self.hyperparameters)
-        self.conds['s0'] = misc['s']
         if not success:
             print("fot failed. stopping.")
             return DoraStatus.STOP
