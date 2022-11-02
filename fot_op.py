@@ -4,13 +4,18 @@ import numpy as np
 from frenet_optimal_trajectory_planner.FrenetOptimalTrajectory import fot_wrapper
 from dora_utils import DoraStatus, closest_vertex, pairwise_distances
 from scipy.spatial.transform import Rotation as R
+import os 
+
 
 
 # Planning general
 TARGET_SPEED = 1
 NUM_WAYPOINTS_AHEAD = 10
-GOAL_LOCATION = np.array([[0, 0], [0, 1.5], [3, 1.5]])
-
+GOAL_WAYPOINTS = os.environ.get("GOAL_WAYPOINTS")
+if GOAL_WAYPOINTS:
+    GOAL_LOCATION = np.fromstring(GOAL_WAYPOINTS, dtype=float, sep=",")
+else:
+    GOAL_LOCATION = np.array([[0, 0], [0, 1.5], [3, 1.5]])
 OBSTACLE_CLEARANCE = 0.1
 
 
@@ -135,6 +140,7 @@ class Operator:
         ) = fot_wrapper.run_fot(initial_conditions, self.hyperparameters)
         if not success:
             print("fot failed. stopping.")
+            send_output("waypoints", np.array([]).tobytes())
             return DoraStatus.STOP
 
         self.waypoints = np.concatenate([result_x, result_y]).reshape((2,-1)).T

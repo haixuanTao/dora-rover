@@ -20,7 +20,6 @@ def talker():
         target = OverrideRCIn()
         if angle < np.pi / 2 and angle > -np.pi / 2:
             target_rotation = int((angle + np.pi / 2) / (np.pi) * 1000) + 1000
-            print(f"target rotation: {target_rotation}")
             target.channels[0] = target_rotation
             target.channels[2] = TARGET_SPEED
         elif angle < -np.pi / 2:

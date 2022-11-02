@@ -114,7 +114,6 @@ class Operator:
             # )
 
             # steer = radians_to_steer(target_angle, STEER_GAIN)
-            print(f"position: {x, y, yaw}, target: {target_location}, vec: {target_vector}")
             # print(f"steer: angle: {target_angle} x: {np.cos(target_angle)}, y: {np.sin(target_angle)}")
 
             data = np.array([-angle])
