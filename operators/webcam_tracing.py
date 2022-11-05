@@ -59,10 +59,10 @@ class Operator:
         send_output: Callable[[str, bytes], None],
     ):
         with tracer.start_as_current_span("start") as _span:
-            ret, frame = self.video_capture.read()
             output = {}
             propagator.inject(output)
             metadata = {"open_telemetry_context": serialize_context(output)}
+            ret, frame = self.video_capture.read()
             encode = cv2.imencode(".jpg", frame)[1].tobytes()
             send_output("image", encode, metadata)
             return DoraStatus.CONTINUE
