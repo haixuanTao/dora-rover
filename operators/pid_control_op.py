@@ -118,5 +118,5 @@ class Operator:
 
             data = np.array([-angle])
 
-            send_output("control", data.tobytes())
+            send_output("control", data.tobytes(), dora_input["metadata"])
             return DoraStatus.CONTINUE

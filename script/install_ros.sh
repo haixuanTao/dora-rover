@@ -48,7 +48,7 @@ sudo ./simple_ndt_slam/assets/scripts/setup_lib.sh
 
 cd ..
 
-sudo apt-get install python3-catkin-tools
+sudo apt-get install python3-catkin-tools ros-sensor-msgs
 
 catkin build -DCMAKE_BUILD_TYPE=Release
 

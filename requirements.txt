@@ -44,5 +44,8 @@ thop>=0.1.1  # FLOPs computation
 
 opencv-python>=4.1.1
 rospkg
-numpy
 scikit-learn
+
+opentelemetry-api
+opentelemetry-sdk
+opentelemetry-exporter-jaeger-thrift

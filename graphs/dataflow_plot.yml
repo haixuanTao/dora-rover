@@ -5,22 +5,29 @@ communication:
 nodes:
   - id: webcam
     operator:
-      python: webcam.py
+      python: ../operators/webcam_tracing.py
       inputs:
         tick: dora/timer/millis/100
       outputs:
         - image
 
+  - id: ndt_pose
+    custom:
+      source: /home/nvidia/Documents/dora-rover/nodes/ndt_pose.py
+      outputs:
+        - position
+        - imu
+
   - id: plot
     operator:
-      python: plot.py
+      python: ../operators/plot.py
       inputs:
         image: webcam/image
         tick: dora/timer/millis/100
         lidar_pc: lidar/lidar_pc
 
-  - id: lidar
-    custom:
-      source: ./point_cloud.py
-      outputs:
-        - lidar_pc
+  #- id: lidar
+    #custom:
+      #source: ../nodes/point_cloud.py
+      #outputs:
+        #- lidar_pc

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/home/nvidia/Documents/dora-rover/venv/bin/python3
 import sensor_msgs.point_cloud2 as pc2
 import rospy
 from sensor_msgs.msg import PointCloud2

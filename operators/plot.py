@@ -118,7 +118,7 @@ class Operator:
 
         elif dora_input["id"] == "lidar_pc":
             point_cloud = np.frombuffer(dora_input["data"])
-            point_cloud = np.reshape(point_cloud, (int(point_cloud.shape[0] / 5), 5))[
+            point_cloud = np.reshape(point_cloud, (int(point_cloud.shape[0] / 6), 6))[
                 :, :3
             ]
 
@@ -143,33 +143,37 @@ class Operator:
         if (
             "tick" != dora_input["id"]
             or isinstance(self.camera_frame, list)
-            or isinstance(self.position, list)
         ):
             return DoraStatus.CONTINUE
 
-        inv_extrinsic_matrix = np.linalg.inv(
-            get_extrinsic_matrix(get_projection_matrix(self.position))
-        )
+        if not isinstance(self.position, list):
+            inv_extrinsic_matrix = np.linalg.inv(
+                get_extrinsic_matrix(get_projection_matrix(self.position))
+            )
+        else:
+            inv_extrinsic_matrix = None
+
         resized_image = self.camera_frame[:, :, :3]
         resized_image = np.ascontiguousarray(resized_image, dtype=np.uint8)
 
         ## Drawing on frame
-        waypoints = location_to_camera_view(
-            self.waypoints, INTRINSIC_MATRIX, inv_extrinsic_matrix
-        ).T
+        if inv_extrinsic_matrix is not None:
+            self.waypoints = location_to_camera_view(
+                self.waypoints, INTRINSIC_MATRIX, inv_extrinsic_matrix
+            ).T
 
-        for waypoint in waypoints:
-            cv2.circle(
-                resized_image,
-                (int(waypoint[0]), int(waypoint[1])),
-                3,
-                (
-                    int(min(200 - waypoint[2] * 100, 200)),
-                    int(min(waypoint[2], 255)),
-                    255,
-                ),
-                -1,
-            )
+            for waypoint in self.waypoints:
+                cv2.circle(
+                    resized_image,
+                    (int(waypoint[0]), int(waypoint[1])),
+                    3,
+                    (
+                        int(min(200 - waypoint[2] * 100, 200)),
+                        int(min(waypoint[2], 255)),
+                        255,
+                    ),
+                    -1,
+                )
 
         for obstacle in self.obstacles:
             [x, y, z, _confidence, _label] = obstacle
@@ -198,16 +202,17 @@ class Operator:
                 -1,
             )
 
-        locations = local_points_to_camera_view(self.point_cloud, INTRINSIC_MATRIX)
+        if inv_extrinsic_matrix is not None:
+            self.point_cloud = local_points_to_camera_view(self.point_cloud, INTRINSIC_MATRIX)
 
-        for index, point in enumerate(locations.T):
-            cv2.circle(
-                resized_image,
-                (int(point[0]), int(point[1])),
-                3,
-                (0, int(min(200 - point[2] * 200, 200)), int(min(point[2] * 10, 255))),
-                -1,
-            )
+            for index, point in enumerate(self.point_cloud.T):
+                cv2.circle(
+                    resized_image,
+                    (int(point[0]), int(point[1])),
+                    3,
+                    (0, int(min(200 - point[2] * 200, 200)), int(min(point[2] * 10, 255))),
+                    -1,
+                )
 
         for obstacle_bb in self.obstacles_bbox:
             [min_x, max_x, min_y, max_y, confidence, label] = obstacle_bb
@@ -262,12 +267,12 @@ class Operator:
             # blend with original image
             alpha = 0.25
             resized_image = cv2.addWeighted(resized_image, 1 - alpha, back, alpha, 0)
-        [x, y, z, rx, ry, rz, rw] = self.position
-        [_, _, yaw] = R.from_quat([rx, ry, rz, rw]).as_euler("xyz", degrees=True)
+        #[x, y, z, rx, ry, rz, rw] = self.position
+        #[_, _, yaw] = R.from_quat([rx, ry, rz, rw]).as_euler("xyz", degrees=True)
 
         cv2.putText(
             resized_image,
-            f"""cur: x: {x:.2f}, y: {y:.2f}, yaw: {yaw:.2f}""",
+        f"",   # f"""cur: x: {x:.2f}, y: {y:.2f}, yaw: {yaw:.2f}""",
             (10, 30),
             font,
             fontScale,

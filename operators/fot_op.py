@@ -145,5 +145,5 @@ class Operator:
 
         self.waypoints = np.concatenate([result_x, result_y]).reshape((2,-1)).T
         self.outputs = np.concatenate([result_x, result_y, speeds]).reshape((3,-1)).T
-        send_output("waypoints", self.outputs.tobytes())
+        send_output("waypoints", self.outputs.tobytes(), dora_input["metadata"])
         return DoraStatus.CONTINUE

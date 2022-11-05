@@ -17,8 +17,8 @@ class Operator:
 
     def __init__(self):
         self.video_capture = cv2.VideoCapture(0)
-        self.video_capture.set(cv2.CAP_PROP_FRAME_WIDTH, 800)
-        self.video_capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 600)
+        self.video_capture.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+        self.video_capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
     def on_input(
         self,

@@ -6,8 +6,8 @@ virtualenv .env
 # Dev dependencies
 pip install maturin
 cd ../dora/apis/python/node
-maturin develop
-cd ../../../../dora_ros_bridge
+python3 -m maturin develop
+cd ../../../../dora-rover
 
 # Dependencies
 pip install --upgrade pip
