@@ -158,11 +158,11 @@ class Operator:
 
         ## Drawing on frame
         if inv_extrinsic_matrix is not None:
-            self.waypoints = location_to_camera_view(
+            waypoints = location_to_camera_view(
                 self.waypoints, INTRINSIC_MATRIX, inv_extrinsic_matrix
             ).T
-
-            for waypoint in self.waypoints:
+            
+            for waypoint in waypoints:
                 cv2.circle(
                     resized_image,
                     (int(waypoint[0]), int(waypoint[1])),
@@ -267,19 +267,20 @@ class Operator:
             # blend with original image
             alpha = 0.25
             resized_image = cv2.addWeighted(resized_image, 1 - alpha, back, alpha, 0)
-        #[x, y, z, rx, ry, rz, rw] = self.position
-        #[_, _, yaw] = R.from_quat([rx, ry, rz, rw]).as_euler("xyz", degrees=True)
+        if not isinstance(self.position, list):
+            [x, y, z, rx, ry, rz, rw] = self.position
+            [_, _, yaw] = R.from_quat([rx, ry, rz, rw]).as_euler("xyz", degrees=True)
 
-        cv2.putText(
+            cv2.putText(
             resized_image,
-        f"",   # f"""cur: x: {x:.2f}, y: {y:.2f}, yaw: {yaw:.2f}""",
+           f"""cur: x: {x:.2f}, y: {y:.2f}, yaw: {yaw:.2f}""",
             (10, 30),
             font,
             fontScale,
             fontColor,
             thickness,
             lineType,
-        )
+            )
 
         if len(self.control) != 0:
             cv2.putText(

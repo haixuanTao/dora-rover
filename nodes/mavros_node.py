@@ -25,10 +25,10 @@ def talker():
         elif angle < -np.pi / 2:
             target_rotation = 1000
             target.channels[0] = target_rotation
-            target.channels[2] = TARGET_SPEED
+            target.channels[1] = TARGET_SPEED
         else:
             target.channels[0] = 2000
-            target.channels[2] = TARGET_SPEED
+            target.channels[1] = TARGET_SPEED
 
         # target.channels[2] = 100
         # target = PositionTarget()
@@ -44,7 +44,7 @@ def talker():
     print("stopping")
     target = OverrideRCIn()
     target.channels[0] = 2000
-    target.channels[2] = 120
+    target.channels[1] = 120
 
     pub.publish(target)
     print("stopped")

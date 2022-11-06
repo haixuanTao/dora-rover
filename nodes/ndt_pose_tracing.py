@@ -103,7 +103,7 @@ def pose_callback(data):
             output = {}
             propagator.inject(output)
             metadata = {"open_telemetry_context": serialize_context(output)}
-            node.send_output("position", position.tobytes())
+            node.send_output("position", position.tobytes(), metadata)
             start = time.time()
 
 

@@ -17,7 +17,6 @@ nodes:
       args: . /home/nvidia/Documents/dora-rover/venv/bin/activate && python3 ../nodes/ndt_pose_tracing.py
       outputs:
         - position
-        - imu
 
   #- id: hybrid_astar
     #operator:
