@@ -9,13 +9,13 @@ import os
 
 
 # Planning general
-TARGET_SPEED = 1
+TARGET_SPEED = 0.5
 NUM_WAYPOINTS_AHEAD = 10
 GOAL_WAYPOINTS = os.environ.get("GOAL_WAYPOINTS")
 if GOAL_WAYPOINTS:
     GOAL_LOCATION = np.fromstring(GOAL_WAYPOINTS, dtype=float, sep=",")
 else:
-    GOAL_LOCATION = np.array([[0, 0], [0, 1.5], [3, 1.5]])
+    GOAL_LOCATION = np.array([[0, 0], [0, 1.5], [3, 2.5]])
 OBSTACLE_CLEARANCE = 0.1
 
 
@@ -55,8 +55,8 @@ class Operator:
     def __init__(self):
         self.obstacles = np.array([])
         self.position = []
-        self.waypoints = GOAL_LOCATION
-        self.gps_waypoints = GOAL_LOCATION
+        self.waypoints = []
+        self.gps_waypoints = []
         self.obstacle_metadata = {}
         self.gps_metadata = {}
         self.metadata = {}
@@ -102,13 +102,22 @@ class Operator:
             )
             self.obstacles = obstacles
 
-        if len(self.waypoints) == 0:
-            return DoraStatus.STOP
+        if "gps_waypoints" == dora_input["id"]:
+            waypoints = np.frombuffer(dora_input["data"])
+            waypoints = waypoints.reshape((-1, 2))
+            self.gps_waypoints = waypoints
+            print(f"Got GPS Waypoints: {self.gps_waypoints}")
+
+        if len(self.gps_waypoints) == 0:
+            print("No waypoints")
+            return DoraStatus.CONTINUE
+        
+        elif len(self.position) == 0:
+            print("No position")
+            return DoraStatus.CONTINUE
 
         [x, y, z, rx, ry, rz, rw] = self.position
         [_, _, yaw] = R.from_quat([rx, ry, rz, rw]).as_euler("xyz", degrees=False)
-
-
 
 
         gps_obstacles = get_obstacle_list(self.obstacles, self.gps_waypoints)
@@ -118,7 +127,7 @@ class Operator:
             "ps": 0,
             "target_speed": self.conds["target_speed"],
             "pos": self.position[:2],
-            "vel": np.array([np.cos(yaw), np.sin(yaw)]),
+            "vel": 0.5 * np.array([np.cos(yaw), np.sin(yaw)]),
             "wp": self.gps_waypoints,
             "obs": gps_obstacles,
         }
@@ -139,7 +148,7 @@ class Operator:
             success,
         ) = fot_wrapper.run_fot(initial_conditions, self.hyperparameters)
         if not success:
-            print("fot failed. stopping.")
+            print(f"fot failed. stopping with {initial_conditions}.")
             send_output("waypoints", np.array([]).tobytes())
             return DoraStatus.STOP
 

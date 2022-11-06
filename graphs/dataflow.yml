@@ -17,6 +17,7 @@ nodes:
       args: . /home/nvidia/Documents/dora-rover/venv/bin/activate && python3 ../nodes/ndt_pose_tracing.py
       outputs:
         - position
+        - gps_waypoints
 
   #- id: hybrid_astar
     #operator:
@@ -31,6 +32,7 @@ nodes:
       python: /home/nvidia/Documents/dora-rover/operators/fot_op.py
       inputs:
         position: ndt_pose/position
+        gps_waypoints: ndt_pose/gps_waypoints
       outputs:
         - waypoints
     #env:

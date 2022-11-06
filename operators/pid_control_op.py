@@ -67,6 +67,8 @@ class Operator:
 
         elif "waypoints" == dora_input["id"]:
             waypoints = np.frombuffer(dora_input["data"])
+            if len(waypoints) == 0:
+                return DoraStatus.STOP
             waypoints = waypoints.reshape((-1, 3))
             waypoints = waypoints[:, :2]
             self.waypoints = waypoints
