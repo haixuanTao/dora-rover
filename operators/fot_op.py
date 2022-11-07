@@ -4,8 +4,7 @@ import numpy as np
 from frenet_optimal_trajectory_planner.FrenetOptimalTrajectory import fot_wrapper
 from dora_utils import DoraStatus, closest_vertex, pairwise_distances
 from scipy.spatial.transform import Rotation as R
-import os 
-
+import os
 
 
 # Planning general
@@ -85,7 +84,10 @@ class Operator:
             "klon": 1.0,
             "num_threads": 0,  # set 0 to avoid using threaded algorithm
         }
-        self.conds = {"s0": 0, "target_speed": TARGET_SPEED}  # paste output from debug log
+        self.conds = {
+            "s0": 0,
+            "target_speed": TARGET_SPEED,
+        }  # paste output from debug log
 
     def on_input(
         self,
@@ -111,7 +113,7 @@ class Operator:
         if len(self.gps_waypoints) == 0:
             print("No waypoints")
             return DoraStatus.CONTINUE
-        
+
         elif len(self.position) == 0:
             print("No position")
             return DoraStatus.CONTINUE
@@ -119,10 +121,8 @@ class Operator:
         [x, y, z, rx, ry, rz, rw] = self.position
         [_, _, yaw] = R.from_quat([rx, ry, rz, rw]).as_euler("xyz", degrees=False)
 
-
         gps_obstacles = get_obstacle_list(self.obstacles, self.gps_waypoints)
 
-        
         initial_conditions = {
             "ps": 0,
             "target_speed": self.conds["target_speed"],
@@ -152,7 +152,7 @@ class Operator:
             send_output("waypoints", np.array([]).tobytes())
             return DoraStatus.STOP
 
-        self.waypoints = np.concatenate([result_x, result_y]).reshape((2,-1)).T
-        self.outputs = np.concatenate([result_x, result_y, speeds]).reshape((3,-1)).T
+        self.waypoints = np.concatenate([result_x, result_y]).reshape((2, -1)).T
+        self.outputs = np.concatenate([result_x, result_y, speeds]).reshape((3, -1)).T
         send_output("waypoints", self.outputs.tobytes(), dora_input["metadata"])
         return DoraStatus.CONTINUE

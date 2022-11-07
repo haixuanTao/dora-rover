@@ -116,20 +116,9 @@ class Operator:
             # Add sensor transform
             self.position = np.frombuffer(dora_input["data"])
 
-        elif dora_input["id"] == "lidar_pc":
+        elif "lidar_pc" == dora_input["id"]:
             point_cloud = np.frombuffer(dora_input["data"])
-            point_cloud = np.reshape(point_cloud, (int(point_cloud.shape[0] / 6), 6))[
-                :, :3
-            ]
-
-            # To camera coordinate
-            # The latest coordinate space is the velodyne space.
-            point_cloud = np.dot(
-                point_cloud,
-                np.array([[0, 0, 1], [-1, 0, 0], [0, -1, 0]]),
-            )
-            point_cloud = point_cloud[np.where(point_cloud[:, 2] > 0.1)]
-            self.point_cloud = point_cloud
+            self.point_cloud = point_cloud.reshape((-1, 3))
 
         elif "image" == dora_input["id"]:
             self.camera_frame = cv2.imdecode(
@@ -140,10 +129,7 @@ class Operator:
                 -1,
             )
 
-        if (
-            "tick" != dora_input["id"]
-            or isinstance(self.camera_frame, list)
-        ):
+        if "tick" != dora_input["id"] or isinstance(self.camera_frame, list):
             return DoraStatus.CONTINUE
 
         if not isinstance(self.position, list):
@@ -161,7 +147,7 @@ class Operator:
             waypoints = location_to_camera_view(
                 self.waypoints, INTRINSIC_MATRIX, inv_extrinsic_matrix
             ).T
-            
+
             for waypoint in waypoints:
                 cv2.circle(
                     resized_image,
@@ -202,17 +188,26 @@ class Operator:
                 -1,
             )
 
-        if inv_extrinsic_matrix is not None:
-            self.point_cloud = local_points_to_camera_view(self.point_cloud, INTRINSIC_MATRIX)
+        point_cloud = local_points_to_camera_view(
+            self.point_cloud, INTRINSIC_MATRIX
+        )
 
-            for index, point in enumerate(self.point_cloud.T):
+        if len(point_cloud) != 0:
+            print(point_cloud[0])
+            for point in self.point_cloud.T:
                 cv2.circle(
                     resized_image,
                     (int(point[0]), int(point[1])),
                     3,
-                    (0, int(min(200 - point[2] * 200, 200)), int(min(point[2] * 10, 255))),
+                    (
+                        0,
+                        int(min(200 - point[2] * 200, 200)),
+                        int(min(point[2] * 10, 255)),
+                    ),
                     -1,
                 )
+        else:
+            print("No point cloud.")
 
         for obstacle_bb in self.obstacles_bbox:
             [min_x, max_x, min_y, max_y, confidence, label] = obstacle_bb
@@ -261,25 +256,28 @@ class Operator:
             cv2.polylines(resized_image, [lane], False, (0, 0, 255), 3)
 
         for contour in self.drivable_area:
-            back = resized_image.copy()
-            cv2.drawContours(back, [contour], 0, (0, 255, 0), -1)
+            if len(contour) != 0:
+                back = resized_image.copy()
+                cv2.drawContours(back, [contour], 0, (0, 255, 0), -1)
 
-            # blend with original image
-            alpha = 0.25
-            resized_image = cv2.addWeighted(resized_image, 1 - alpha, back, alpha, 0)
+                # blend with original image
+                alpha = 0.25
+                resized_image = cv2.addWeighted(
+                    resized_image, 1 - alpha, back, alpha, 0
+                )
         if not isinstance(self.position, list):
             [x, y, z, rx, ry, rz, rw] = self.position
             [_, _, yaw] = R.from_quat([rx, ry, rz, rw]).as_euler("xyz", degrees=True)
 
             cv2.putText(
-            resized_image,
-           f"""cur: x: {x:.2f}, y: {y:.2f}, yaw: {yaw:.2f}""",
-            (10, 30),
-            font,
-            fontScale,
-            fontColor,
-            thickness,
-            lineType,
+                resized_image,
+                f"""cur: x: {x:.2f}, y: {y:.2f}, yaw: {yaw:.2f}""",
+                (10, 30),
+                font,
+                fontScale,
+                fontColor,
+                thickness,
+                lineType,
             )
 
         if len(self.control) != 0:

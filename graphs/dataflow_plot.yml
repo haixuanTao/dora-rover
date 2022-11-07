@@ -16,7 +16,30 @@ nodes:
       source: /home/nvidia/Documents/dora-rover/nodes/ndt_pose.py
       outputs:
         - position
-        - imu
+        - gps_waypoints 
+
+  - id: lidar
+    custom:
+      source: ../nodes/point_cloud.py
+      outputs:
+        - lidar_pc
+ 
+  - id: yolov5
+    operator: 
+      outputs:
+        - bbox
+      inputs:
+        image: webcam/image
+      python: https://raw.githubusercontent.com/dora-rs/dora-drives/downloadable_yolov5/operators/yolov5_op.py
+ 
+  #- id: yolop
+    #operator: 
+      #outputs:
+        #- lanes
+        #- drivable_area
+      #inputs:
+        #image: webcam/image
+      #python: https://raw.githubusercontent.com/dora-rs/dora-drives/downloadable_yolov5/operators/yolop_op.py
 
   - id: plot
     operator:
@@ -25,9 +48,7 @@ nodes:
         image: webcam/image
         tick: dora/timer/millis/100
         lidar_pc: lidar/lidar_pc
-
-  #- id: lidar
-    #custom:
-      #source: ../nodes/point_cloud.py
-      #outputs:
-        #- lidar_pc
+        obstacles_bbox: yolov5/bbox
+        lanes: yolop/lanes
+        drivable_area: yolop/drivable_area
+        position: ndt_pose/position

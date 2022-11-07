@@ -32,9 +32,7 @@ CarrierT = typing.TypeVar("CarrierT")
 propagator = TraceContextTextMapPropagator()
 
 trace.set_tracer_provider(
-    TracerProvider(
-        resource=Resource.create({SERVICE_NAME: "ndt_pose"})
-    )
+    TracerProvider(resource=Resource.create({SERVICE_NAME: "ndt_pose"}))
 )
 tracer = trace.get_tracer(__name__)
 jaeger_exporter = JaegerExporter(
@@ -45,12 +43,12 @@ span_processor = BatchSpanProcessor(jaeger_exporter)
 trace.get_tracer_provider().add_span_processor(span_processor)
 
 
-
 node = Node()
 initial_orientation = None
 orientation = None
 
 GOAL_LOCATION = np.array([[0, 0, 0], [1, 0, 0], [1, -8, 0]])
+
 
 def imu_callback(data):
 
@@ -73,7 +71,7 @@ def imu_callback(data):
         abs_goal_location = initial_orientation.apply(GOAL_LOCATION)
         abs_goal_location = abs_goal_location[:, :2]
         node.send_output("gps_waypoints", abs_goal_location.tobytes())
-        
+
     orientation = [
         data.orientation.x,
         data.orientation.y,

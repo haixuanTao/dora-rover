@@ -33,9 +33,7 @@ CarrierT = typing.TypeVar("CarrierT")
 propagator = TraceContextTextMapPropagator()
 
 trace.set_tracer_provider(
-    TracerProvider(
-        resource=Resource.create({SERVICE_NAME: "mavros"})
-    )
+    TracerProvider(resource=Resource.create({SERVICE_NAME: "mavros"}))
 )
 tracer = trace.get_tracer(__name__)
 jaeger_exporter = JaegerExporter(
@@ -46,10 +44,9 @@ span_processor = BatchSpanProcessor(jaeger_exporter)
 trace.get_tracer_provider().add_span_processor(span_processor)
 
 
-
 node = Node()
 
-TARGET_SPEED = 1700
+TARGET_SPEED = 1600
 
 
 def talker():
@@ -59,8 +56,8 @@ def talker():
         carrier = parse_context(metadata["open_telemetry_context"])
         context = propagator.extract(carrier=carrier)
         with tracer.start_as_current_span(
-        name="control", context=context
-    ) as child_span:
+            name="control", context=context
+        ) as child_span:
 
             [angle] = np.frombuffer(value)
             target = OverrideRCIn()

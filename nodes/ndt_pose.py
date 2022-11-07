@@ -15,6 +15,7 @@ orientation = None
 
 GOAL_LOCATION = np.array([[0, 0, 0], [1, 0, 0], [1, 8, 0]])
 
+
 def imu_callback(data):
 
     global initial_orientation
@@ -36,14 +37,13 @@ def imu_callback(data):
         abs_goal_location = initial_orientation.apply(GOAL_LOCATION)
         abs_goal_location = abs_goal_location[:, :2]
         node.send_output("gps_waypoints", abs_goal_location.tobytes())
-        
+
     orientation = [
         data.orientation.x,
         data.orientation.y,
         data.orientation.z,
         data.orientation.w,
     ]
-
 
 
 start = time.time()

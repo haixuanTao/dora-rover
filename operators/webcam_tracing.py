@@ -25,9 +25,7 @@ CarrierT = typing.TypeVar("CarrierT")
 propagator = TraceContextTextMapPropagator()
 
 trace.set_tracer_provider(
-    TracerProvider(
-        resource=Resource.create({SERVICE_NAME: "webcam"})
-    )
+    TracerProvider(resource=Resource.create({SERVICE_NAME: "webcam"}))
 )
 tracer = trace.get_tracer(__name__)
 jaeger_exporter = JaegerExporter(
