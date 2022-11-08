@@ -41,6 +41,16 @@ nodes:
         #image: webcam/image
       #python: https://raw.githubusercontent.com/dora-rs/dora-drives/downloadable_yolov5/operators/yolop_op.py
 
+  - id: obstacle_location_op
+    operator: 
+      outputs:
+        - obstacles
+      inputs:
+        lidar_pc: lidar/lidar_pc
+        obstacles_bbox: yolov5/bbox
+        position: ndt_pose/position
+      python: ../operators/obstacle_location_op.py
+      
   - id: plot
     operator:
       python: ../operators/plot.py
@@ -52,3 +62,4 @@ nodes:
         lanes: yolop/lanes
         drivable_area: yolop/drivable_area
         position: ndt_pose/position
+        

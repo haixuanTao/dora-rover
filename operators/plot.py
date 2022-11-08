@@ -22,9 +22,9 @@ from dora_utils import (
 
 CAMERA_WIDTH = 640
 CAMERA_HEIGHT = 480
-DEPTH_IMAGE_WIDTH = 640
+DEPTH_IMAGE_WIDTH = 800
 DEPTH_IMAGE_HEIGHT = 480
-DEPTH_FOV = 90
+DEPTH_FOV = 30
 SENSOR_POSITION = np.array([3, 0, 1, 0, 0, 0])
 INTRINSIC_MATRIX = get_intrinsic_matrix(
     DEPTH_IMAGE_WIDTH, DEPTH_IMAGE_HEIGHT, DEPTH_FOV
@@ -60,7 +60,7 @@ class Operator:
         self.position = []
         self.camera_frame = []
         self.traffic_sign_bbox = []
-        self.point_cloud = []
+        self.point_cloud = np.array([])
         self.control = []
 
     def on_input(
@@ -118,7 +118,13 @@ class Operator:
 
         elif "lidar_pc" == dora_input["id"]:
             point_cloud = np.frombuffer(dora_input["data"])
-            self.point_cloud = point_cloud.reshape((-1, 3))
+            point_cloud = point_cloud.reshape((-1, 3))
+            point_cloud = local_points_to_camera_view(
+                point_cloud, INTRINSIC_MATRIX
+            )
+
+            if len(point_cloud) != 0:
+                self.point_cloud = point_cloud
 
         elif "image" == dora_input["id"]:
             self.camera_frame = cv2.imdecode(
@@ -154,7 +160,7 @@ class Operator:
                     (int(waypoint[0]), int(waypoint[1])),
                     3,
                     (
-                        int(min(200 - waypoint[2] * 100, 200)),
+                        int(max(255 - waypoint[2] * 100, 0)),
                         int(min(waypoint[2], 255)),
                         255,
                     ),
@@ -162,7 +168,7 @@ class Operator:
                 )
 
         for obstacle in self.obstacles:
-            [x, y, z, _confidence, _label] = obstacle
+            [min_x, max_x, min_z, _confidence, _label] = obstacle
             location = location_to_camera_view(
                 np.array([[x, y, z]]),
                 INTRINSIC_MATRIX,
@@ -188,26 +194,18 @@ class Operator:
                 -1,
             )
 
-        point_cloud = local_points_to_camera_view(
-            self.point_cloud, INTRINSIC_MATRIX
-        )
-
-        if len(point_cloud) != 0:
-            print(point_cloud[0])
-            for point in self.point_cloud.T:
-                cv2.circle(
-                    resized_image,
-                    (int(point[0]), int(point[1])),
-                    3,
-                    (
-                        0,
-                        int(min(200 - point[2] * 200, 200)),
-                        int(min(point[2] * 10, 255)),
-                    ),
-                    -1,
-                )
-        else:
-            print("No point cloud.")
+        for point in self.point_cloud.T:
+            cv2.circle(
+                resized_image,
+                (int(point[0]), int(point[1])),
+                3,
+                (
+                    0,
+                    int(max(255 - point[2] * 100, 0)),
+                    int(min(point[2] * 10, 255)),
+                ),
+                -1,
+            )
 
         for obstacle_bb in self.obstacles_bbox:
             [min_x, max_x, min_y, max_y, confidence, label] = obstacle_bb
