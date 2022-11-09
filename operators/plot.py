@@ -22,10 +22,12 @@ from dora_utils import (
 
 CAMERA_WIDTH = 640
 CAMERA_HEIGHT = 480
-DEPTH_IMAGE_WIDTH = 800
+DEPTH_IMAGE_WIDTH = 700
 DEPTH_IMAGE_HEIGHT = 480
-DEPTH_FOV = 30
+DEPTH_FOV = 90
 SENSOR_POSITION = np.array([3, 0, 1, 0, 0, 0])
+VELODYNE_MATRIX = np.array([[0, 0, 1], [-1, 0, 0], [0, -1, 0]])
+INV_VELODYNE_MATRIX = np.linalg.inv(VELODYNE_MATRIX)
 INTRINSIC_MATRIX = get_intrinsic_matrix(
     DEPTH_IMAGE_WIDTH, DEPTH_IMAGE_HEIGHT, DEPTH_FOV
 )
@@ -97,8 +99,14 @@ class Operator:
         elif "obstacles" == dora_input["id"]:
             obstacles = np.frombuffer(dora_input["data"], dtype="float32").reshape(
                 (-1, 5)
-            )
-            self.obstacles = obstacles
+            )[:, :3]
+            if len(self.position) != 0:
+                [x, y, z, rx, ry, rz, rw] = self.position
+                rot = R.from_quat([rx, ry, rz, rw]).inv()
+                obstacles = rot.apply(obstacles - [x, y, z])
+                obstacles = np.dot(obstacles, VELODYNE_MATRIX)
+                obstacles = np.dot(INTRINSIC_MATRIX, obstacles.T).T
+                self.obstacles = obstacles
 
         elif "lanes" == dora_input["id"]:
             lanes = np.frombuffer(dora_input["data"], dtype="int32").reshape(
@@ -119,12 +127,10 @@ class Operator:
         elif "lidar_pc" == dora_input["id"]:
             point_cloud = np.frombuffer(dora_input["data"])
             point_cloud = point_cloud.reshape((-1, 3))
-            point_cloud = local_points_to_camera_view(
-                point_cloud, INTRINSIC_MATRIX
-            )
+            point_cloud = local_points_to_camera_view(point_cloud, INTRINSIC_MATRIX)
 
             if len(point_cloud) != 0:
-                self.point_cloud = point_cloud
+                self.point_cloud = point_cloud.T
 
         elif "image" == dora_input["id"]:
             self.camera_frame = cv2.imdecode(
@@ -168,12 +174,13 @@ class Operator:
                 )
 
         for obstacle in self.obstacles:
-            [min_x, max_x, min_z, _confidence, _label] = obstacle
-            location = location_to_camera_view(
-                np.array([[x, y, z]]),
-                INTRINSIC_MATRIX,
-                inv_extrinsic_matrix,
-            )
+            [x, y, z] = obstacle
+            #location = location_to_camera_view(
+                #np.array([[x, y, z]]),
+                #INTRINSIC_MATRIX,
+                #inv_extrinsic_matrix,
+            #)
+            location = [x, y, z]
             cv2.circle(
                 resized_image,
                 (int(location[0]), int(location[1])),
@@ -181,20 +188,20 @@ class Operator:
                 (255, 255, 0),
                 -1,
             )
-            location = location_to_camera_view(
-                np.array([[x, y, 0]]),
-                INTRINSIC_MATRIX,
-                inv_extrinsic_matrix,
-            )
-            cv2.circle(
-                resized_image,
-                (int(location[0]), int(location[1])),
-                3,
-                (150, 150, 0),
-                -1,
-            )
+            #location = location_to_camera_view(
+                #np.array([[x, y, 0]]),
+                #INTRINSIC_MATRIX,
+                #inv_extrinsic_matrix,
+            #)
+            #cv2.circle(
+                #resized_image,
+                #(int(location[0]), int(location[1])),
+                #3,
+                #(150, 150, 0),
+                #-1,
+            #)
 
-        for point in self.point_cloud.T:
+        for point in self.point_cloud:
             cv2.circle(
                 resized_image,
                 (int(point[0]), int(point[1])),

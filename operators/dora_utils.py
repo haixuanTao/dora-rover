@@ -24,6 +24,7 @@ def closest_vertex(vertices: np.array, point: np.array) -> Tuple[int, np.array]:
     return (argmin_vertice, min_vertice)
 
 
+
 def get_projection_matrix(position: np.array):
     """Creates a transformation matrix to convert points in the 3D world
     coordinate space with respect to the object.
@@ -36,9 +37,24 @@ def get_projection_matrix(position: np.array):
     """
     matrix = np.identity(4)
     [x, y, z, rx, ry, rz, rw] = position
-    matrix[0:3, 0:3] = R.from_quat([rx, ry, rz, rw]).as_matrix()
-    matrix[:3, 3] = [x, y, z]
+    [roll, pitch, yaw] = R.from_quat([rx, ry, rz, rw]).as_euler("xyz", degrees=False)
 
+    cy = np.cos((yaw))
+    sy = np.sin((yaw))
+    cr = np.cos((roll))
+    sr = np.sin((roll))
+    cp = np.cos((pitch))
+    sp = np.sin((pitch))
+    matrix[:3, 3] = [x, y, z]
+    matrix[0, 0] = cp * cy
+    matrix[0, 1] = cy * sp * sr - sy * cr
+    matrix[0, 2] = -1 * (cy * sp * cr + sy * sr)
+    matrix[1, 0] = sy * cp
+    matrix[1, 1] = sy * sp * sr + cy * cr
+    matrix[1, 2] = cy * sr - sy * sp * cr
+    matrix[2, 0] = sp
+    matrix[2, 1] = -1 * (cp * sr)
+    matrix[2, 2] = cp * cr
     return matrix
 
 

@@ -16,7 +16,7 @@ if GOAL_WAYPOINTS:
 else:
     GOAL_LOCATION = np.array([[0, 0], [0, 1.5], [3, 2.5]])
 OBSTACLE_CLEARANCE = 0.1
-
+OBSTACLE_RADIUS = 1
 
 def get_obstacle_list(obstacle_predictions, waypoints):
     if len(obstacle_predictions) == 0 or len(waypoints) == 0:
@@ -103,7 +103,8 @@ class Operator:
                 (-1, 5)
             )
             self.obstacles = obstacles
-
+            print(obstacles)
+                
         if "gps_waypoints" == dora_input["id"]:
             waypoints = np.frombuffer(dora_input["data"])
             waypoints = waypoints.reshape((-1, 2))

@@ -7,7 +7,7 @@ nodes:
     operator:
       python: ../operators/webcam_tracing.py
       inputs:
-        tick: dora/timer/millis/100
+        tick: dora/timer/millis/500
       outputs:
         - image
 
@@ -49,7 +49,7 @@ nodes:
         lidar_pc: lidar/lidar_pc
         obstacles_bbox: yolov5/bbox
         position: ndt_pose/position
-      python: ../operators/obstacle_location_op.py
+      python: ../operators/obstacle_location.py
       
   - id: plot
     operator:
@@ -59,7 +59,17 @@ nodes:
         tick: dora/timer/millis/100
         lidar_pc: lidar/lidar_pc
         obstacles_bbox: yolov5/bbox
+        obstacles: obstacle_location_op/obstacles
         lanes: yolop/lanes
         drivable_area: yolop/drivable_area
         position: ndt_pose/position
         
+  - id: fot
+    operator:
+      python: /home/nvidia/Documents/dora-rover/operators/fot_op.py
+      inputs:
+        position: ndt_pose/position
+        gps_waypoints: ndt_pose/gps_waypoints
+        obstacles: obstacle_location_op/obstacles
+      outputs:
+        - waypoints

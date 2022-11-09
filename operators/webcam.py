@@ -17,8 +17,8 @@ class Operator:
 
     def __init__(self):
         self.video_capture = cv2.VideoCapture(0)
-        self.video_capture.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-        self.video_capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+        #self.video_capture.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+        #self.video_capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
     def on_input(
         self,
@@ -26,6 +26,7 @@ class Operator:
         send_output: Callable[[str, bytes], None],
     ):
         ret, frame = self.video_capture.read()
+        frame = frame.resize((640, 480))
         send_output("image", cv2.imencode(".jpg", frame)[1].tobytes())
         return DoraStatus.CONTINUE
 

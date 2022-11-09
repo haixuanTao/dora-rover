@@ -48,8 +48,8 @@ class Operator:
 
     def __init__(self):
         self.video_capture = cv2.VideoCapture(0)
-        self.video_capture.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-        self.video_capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+        self.video_capture.set(cv2.CAP_PROP_FRAME_WIDTH, 800)
+        self.video_capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 600)
 
     def on_input(
         self,
@@ -61,6 +61,7 @@ class Operator:
             propagator.inject(output)
             metadata = {"open_telemetry_context": serialize_context(output)}
             ret, frame = self.video_capture.read()
+            frame = cv2.resize(frame, (640, 480))
             encode = cv2.imencode(".jpg", frame)[1].tobytes()
             send_output("image", encode, metadata)
             return DoraStatus.CONTINUE
