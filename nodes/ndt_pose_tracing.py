@@ -47,7 +47,7 @@ node = Node()
 initial_orientation = None
 orientation = None
 
-GOAL_LOCATION = np.array([[0, 0, 0], [1, 0, 0], [1, -8, 0]])
+GOAL_LOCATION = np.array([[0, 0, 0], [3, 0, 0], [3, -8, 0]])
 
 
 def imu_callback(data):

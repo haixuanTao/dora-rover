@@ -62,6 +62,7 @@ nodes:
         obstacles: obstacle_location_op/obstacles
         lanes: yolop/lanes
         drivable_area: yolop/drivable_area
+        waypoints: fot/waypoints
         position: ndt_pose/position
         
   - id: fot

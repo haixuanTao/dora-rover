@@ -15,8 +15,8 @@ if GOAL_WAYPOINTS:
     GOAL_LOCATION = np.fromstring(GOAL_WAYPOINTS, dtype=float, sep=",")
 else:
     GOAL_LOCATION = np.array([[0, 0], [0, 1.5], [3, 2.5]])
-OBSTACLE_CLEARANCE = 0.1
-OBSTACLE_RADIUS = 1
+OBSTACLE_CLEARANCE = 10
+OBSTACLE_RADIUS = 0.5
 
 def get_obstacle_list(obstacle_predictions, waypoints):
     if len(obstacle_predictions) == 0 or len(waypoints) == 0:
@@ -30,12 +30,13 @@ def get_obstacle_list(obstacle_predictions, waypoints):
             [x, y, _, _confidence, _label] = prediction
             obstacle_size = np.array(
                 [
-                    x - OBSTACLE_RADIUS,
-                    y - OBSTACLE_RADIUS,
+                    x,
+                    y,
                     x + OBSTACLE_RADIUS,
                     y + OBSTACLE_RADIUS,
                 ]
             )
+            print(obstacle_size)
 
             # Remove traffic light. TODO: Take into account traffic light.
             if _label != 9:
@@ -73,7 +74,7 @@ class Operator:
             "mint": 2.0,
             "d_t_s": 0.5,
             "n_s_sample": 2.0,
-            "obstacle_clearance": OBSTACLE_CLEARANCE,
+            "obstacle_clearance": 0.1,
             "kd": 1.0,
             "kv": 0.1,
             "ka": 0.1,
@@ -103,7 +104,7 @@ class Operator:
                 (-1, 5)
             )
             self.obstacles = obstacles
-            print(obstacles)
+            return DoraStatus.CONTINUE
                 
         if "gps_waypoints" == dora_input["id"]:
             waypoints = np.frombuffer(dora_input["data"])
