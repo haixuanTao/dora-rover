@@ -1,3 +1,7 @@
+### 
+### Origin: https://github.com/erdos-project/frenet_optimal_trajectory_planner/blob/master/FrenetOptimalTrajectory/fot_wrapper.py
+##
+
 from typing import Callable
 import time
 import numpy as np

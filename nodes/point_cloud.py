@@ -16,7 +16,7 @@ def callback(data):
     global start
     gen = pc2.read_points(data, skip_nans=True, field_names=("x", "y", "z"))
     data = np.array(list(gen))
-    point_cloud = data[:, :3]
+    point_cloud = data[:, :3] # https://github.com/ros-drivers/velodyne/tree/master/velodyne_pcl
 
     # To camera coordinate
     # The latest coordinate space is the velodyne space.
@@ -27,6 +27,7 @@ def callback(data):
     point_cloud = point_cloud[np.where(point_cloud[:, 2] > 0.1)]
     # inds0 = np.random.choice(point_cloud.shape[0], min(1500, point_cloud.shape[0]), replace=False)
     # point_cloud = point_cloud[inds0]
+
 
     if (time.time() - start > 0.4) and len(point_cloud) > 0:
         node.send_output("lidar_pc", point_cloud.tobytes())

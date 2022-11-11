@@ -31,3 +31,7 @@ install.sh
 ```
 ../../target/release/dora-coordinator --run-dataflow dataflow.yml ../../target/release/dora-runtime
 ```
+
+## Installation of Pytorch and Torchvision
+
+See: https://forums.developer.nvidia.com/t/pytorch-for-jetson/72048
