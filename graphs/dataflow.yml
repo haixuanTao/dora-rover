@@ -5,34 +5,59 @@ communication:
 nodes:
   - id: webcam
     operator:
-      python: /home/nvidia/Documents/dora-rover/operators/webcam.py
+      python: ../operators/webcam_tracing.py
       inputs:
-        tick: dora/timer/millis/100
+        tick: dora/timer/millis/400
       outputs:
         - image
 
   - id: ndt_pose
     custom:
-      source: shell 
-      args: . /home/nvidia/Documents/dora-rover/venv/bin/activate && python3 ../nodes/ndt_pose_tracing.py
+      source: /home/nvidia/Documents/dora-rover/nodes/ndt_pose_tracing.py
       outputs:
         - position
-        - gps_waypoints
+        - gps_waypoints 
 
-  #- id: hybrid_astar
-    #operator:
-      #python: hybrid_astar_op.py
-      #inputs:
-        #position: ndt_pose/position
+  - id: lidar
+    custom:
+      source: ../nodes/point_cloud.py
+      outputs:
+        - lidar_pc
+ 
+  - id: yolov5
+    operator: 
+      outputs:
+        - bbox
+      inputs:
+        image: webcam/image
+      python: https://raw.githubusercontent.com/dora-rs/dora-drives/downloadable_yolov5/operators/yolov5_op.py
+ 
+  #- id: yolop
+    #operator: 
       #outputs:
-        #- waypoints
+        #- lanes
+        #- drivable_area
+      #inputs:
+        #image: webcam/image
+      #python: https://raw.githubusercontent.com/dora-rs/dora-drives/downloadable_yolov5/operators/yolop_op.py
 
+  - id: obstacle_location_op
+    operator: 
+      outputs:
+        - obstacles
+      inputs:
+        lidar_pc: lidar/lidar_pc
+        obstacles_bbox: yolov5/bbox
+        position: ndt_pose/position
+      python: ../operators/obstacle_location.py
+        
   - id: fot
     operator:
       python: /home/nvidia/Documents/dora-rover/operators/fot_op.py
       inputs:
         position: ndt_pose/position
         gps_waypoints: ndt_pose/gps_waypoints
+        obstacles: obstacle_location_op/obstacles
       outputs:
         - waypoints
     #env:
@@ -56,11 +81,15 @@ nodes:
 
   - id: plot
     operator:
-      python: /home/nvidia/Documents/dora-rover/operators/plot.py
+      python: ../operators/plot.py
       inputs:
         image: webcam/image
-        tick: dora/timer/millis/100
+        tick: dora/timer/millis/400
         lidar_pc: lidar/lidar_pc
+        obstacles_bbox: yolov5/bbox
+        obstacles: obstacle_location_op/obstacles
+        lanes: yolop/lanes
+        drivable_area: yolop/drivable_area
         waypoints: fot/waypoints
         position: ndt_pose/position
         control: pid/control

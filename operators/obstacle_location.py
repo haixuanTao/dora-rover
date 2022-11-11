@@ -27,6 +27,7 @@ INV_INTRINSIC_MATRIX = np.linalg.inv(INTRINSIC_MATRIX)
 VELODYNE_MATRIX = np.array([[0, 0, 1], [-1, 0, 0], [0, -1, 0]])
 INV_VELODYNE_MATRIX = np.linalg.inv(VELODYNE_MATRIX)
 
+
 def get_predictions(obstacles, obstacle_with_locations):
     """Extracts obstacle predictions out of the message.
     This method is useful to build obstacle predictions when
@@ -93,9 +94,13 @@ class Operator:
                     )
             if len(obstacles_with_location) > 0:
                 obstacles_with_location = np.array(obstacles_with_location)
-                obstacles_with_location = np.dot(INV_INTRINSIC_MATRIX, obstacles_with_location.T).T
-                
-                obstacles_with_location = np.dot(obstacles_with_location, INV_VELODYNE_MATRIX)
+                obstacles_with_location = np.dot(
+                    INV_INTRINSIC_MATRIX, obstacles_with_location.T
+                ).T
+
+                obstacles_with_location = np.dot(
+                    obstacles_with_location, INV_VELODYNE_MATRIX
+                )
                 [x, y, z, rx, ry, rz, rw] = self.position
                 rot = R.from_quat([rx, ry, rz, rw])
                 obstacles_with_location = rot.apply(obstacles_with_location) + [x, y, z]
@@ -105,4 +110,6 @@ class Operator:
                 predictions_bytes = np.array(predictions, dtype="float32").tobytes()
 
                 send_output("obstacles", predictions_bytes, dora_input["metadata"])
+            else:
+                send_output("obstacles", np.array([]).tobytes(), dora_input["metadata"])
         return DoraStatus.CONTINUE

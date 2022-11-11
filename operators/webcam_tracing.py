@@ -61,10 +61,13 @@ class Operator:
             propagator.inject(output)
             metadata = {"open_telemetry_context": serialize_context(output)}
             ret, frame = self.video_capture.read()
-            frame = cv2.resize(frame, (640, 480))
-            encode = cv2.imencode(".jpg", frame)[1].tobytes()
-            send_output("image", encode, metadata)
-            return DoraStatus.CONTINUE
+            if ret == True:
+                frame = cv2.resize(frame, (640, 480))
+                send_output("image", cv2.imencode(".jpg", frame)[1].tobytes())
+                return DoraStatus.CONTINUE
+            else:
+                print("Could not read Webcam")
+                return DoraStatus.CONTINUE
 
     def drop_operator(self):
         self.video_capture.release()

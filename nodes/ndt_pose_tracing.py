@@ -47,7 +47,7 @@ node = Node()
 initial_orientation = None
 orientation = None
 
-GOAL_LOCATION = np.array([[0, 0, 0], [3, 0, 0], [3, -8, 0]])
+GOAL_LOCATION = np.array([[0, 0, 0], [5.5, 0, 0]])
 
 
 def imu_callback(data):
@@ -102,7 +102,7 @@ def pose_callback(data):
     position = initial_orientation.apply(position)
     position = np.concatenate([position, orientation])
 
-    if time.time() - start > 1:
+    if time.time() - start > 0.4:
         with tracer.start_as_current_span("start") as _span:
             output = {}
             propagator.inject(output)

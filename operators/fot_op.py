@@ -15,8 +15,9 @@ if GOAL_WAYPOINTS:
     GOAL_LOCATION = np.fromstring(GOAL_WAYPOINTS, dtype=float, sep=",")
 else:
     GOAL_LOCATION = np.array([[0, 0], [0, 1.5], [3, 2.5]])
-OBSTACLE_CLEARANCE = 10
-OBSTACLE_RADIUS = 0.5
+OBSTACLE_CLEARANCE = 1
+OBSTACLE_RADIUS = 0.05
+
 
 def get_obstacle_list(obstacle_predictions, waypoints):
     if len(obstacle_predictions) == 0 or len(waypoints) == 0:
@@ -30,13 +31,12 @@ def get_obstacle_list(obstacle_predictions, waypoints):
             [x, y, _, _confidence, _label] = prediction
             obstacle_size = np.array(
                 [
-                    x,
-                    y,
+                    x - OBSTACLE_RADIUS,
+                    y - OBSTACLE_RADIUS,
                     x + OBSTACLE_RADIUS,
                     y + OBSTACLE_RADIUS,
                 ]
             )
-            print(obstacle_size)
 
             # Remove traffic light. TODO: Take into account traffic light.
             if _label != 9:
@@ -53,7 +53,7 @@ class Operator:
     """
 
     def __init__(self):
-        self.obstacles = np.array([])
+        self.obstacles = []
         self.position = []
         self.waypoints = []
         self.gps_waypoints = []
@@ -63,27 +63,27 @@ class Operator:
         self.orientation = None
         self.outputs = []
         self.hyperparameters = {
-            "max_speed": 25.0,
-            "max_accel": 15.0,
-            "max_curvature": 30.0,
-            "max_road_width_l": 5.0,
-            "max_road_width_r": 5.0,
+            "max_speed": 5.0,
+            "max_accel": 5.0,
+            "max_curvature": 35.0,
+            "max_road_width_l": 50.0,
+            "max_road_width_r": 50.0,
             "d_road_w": 0.5,
-            "dt": 0.2,
+            "dt": 0.5,
             "maxt": 5.0,
             "mint": 2.0,
-            "d_t_s": 0.5,
+            "d_t_s": 0.05,
             "n_s_sample": 2.0,
-            "obstacle_clearance": 0.1,
-            "kd": 1.0,
-            "kv": 0.1,
-            "ka": 0.1,
-            "kj": 0.1,
-            "kt": 0.1,
-            "ko": 0.1,
-            "klat": 1.0,
-            "klon": 1.0,
-            "num_threads": 0,  # set 0 to avoid using threaded algorithm
+            "obstacle_clearance": 0.02,
+            "kd": 0.1,
+            "kv": 0.01,
+            "ka": 0.01,
+            "kj": 0.01,
+            "kt": 0.01,
+            "ko": 0.01,
+            "klat": 0.1,
+            "klon": 0.1,
+            "num_threads": 2,  # set 0 to avoid using threaded algorithm
         }
         self.conds = {
             "s0": 0,
@@ -98,17 +98,18 @@ class Operator:
 
         if dora_input["id"] == "position":
             self.position = np.frombuffer(dora_input["data"])
+            return DoraStatus.CONTINUE
 
         elif dora_input["id"] == "obstacles":
             obstacles = np.frombuffer(dora_input["data"], dtype="float32").reshape(
                 (-1, 5)
             )
-            self.obstacles = obstacles
-            return DoraStatus.CONTINUE
-                
+            self.obstacles = np.append(self.obstacles, obstacles).reshape((-1, 5))[-5:]
+
         if "gps_waypoints" == dora_input["id"]:
             waypoints = np.frombuffer(dora_input["data"])
             waypoints = waypoints.reshape((-1, 2))
+            waypoints = waypoints.copy()
             self.gps_waypoints = waypoints
             print(f"Got GPS Waypoints: {self.gps_waypoints}")
 
@@ -120,11 +121,15 @@ class Operator:
             print("No position")
             return DoraStatus.CONTINUE
 
+        elif isinstance(self.obstacles, list):
+            print("No obstacle messages")
+            return DoraStatus.CONTINUE
         [x, y, z, rx, ry, rz, rw] = self.position
         [_, _, yaw] = R.from_quat([rx, ry, rz, rw]).as_euler("xyz", degrees=False)
 
         gps_obstacles = get_obstacle_list(self.obstacles, self.gps_waypoints)
 
+        self.gps_waypoints[0] = np.array([x, y])
         initial_conditions = {
             "ps": 0,
             "target_speed": self.conds["target_speed"],
@@ -152,7 +157,7 @@ class Operator:
         if not success:
             print(f"fot failed. stopping with {initial_conditions}.")
             send_output("waypoints", np.array([]).tobytes())
-            return DoraStatus.STOP
+            return DoraStatus.CONTINUE
 
         self.waypoints = np.concatenate([result_x, result_y]).reshape((2, -1)).T
         self.outputs = np.concatenate([result_x, result_y, speeds]).reshape((3, -1)).T

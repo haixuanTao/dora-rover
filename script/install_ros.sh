@@ -11,7 +11,7 @@ sudo apt install ros-noetic-desktop-full -y
 
 source /opt/ros/noetic/setup.sh 
 
-source /opt/ros/noetic/setup.bash  >> ~/.bashrc
+echo "source /opt/ros/noetic/setup.bash"  >> ~/.bashrc
 
 
 ### Install Velodyne
@@ -52,3 +52,4 @@ sudo apt-get install python3-catkin-tools ros-sensor-msgs
 
 catkin build -DCMAKE_BUILD_TYPE=Release
 
+echo "source /home/nvidia/catkin_ws/devel/setup.bash" >> ~/.bashrc

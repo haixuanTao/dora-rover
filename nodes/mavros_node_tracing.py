@@ -46,7 +46,7 @@ trace.get_tracer_provider().add_span_processor(span_processor)
 
 node = Node()
 
-TARGET_SPEED = 1600
+TARGET_SPEED = 1700
 
 
 def talker():
@@ -87,7 +87,7 @@ def talker():
     print("stopping")
     target = OverrideRCIn()
     target.channels[0] = 2000
-    target.channels[1] = 1550
+    target.channels[1] = 1000
 
     pub.publish(target)
     print("stopped")

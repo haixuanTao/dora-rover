@@ -24,7 +24,6 @@ def closest_vertex(vertices: np.array, point: np.array) -> Tuple[int, np.array]:
     return (argmin_vertice, min_vertice)
 
 
-
 def get_projection_matrix(position: np.array):
     """Creates a transformation matrix to convert points in the 3D world
     coordinate space with respect to the object.
