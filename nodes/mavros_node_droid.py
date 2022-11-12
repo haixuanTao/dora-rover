@@ -46,7 +46,7 @@ trace.get_tracer_provider().add_span_processor(span_processor)
 
 node = Node()
 
-TARGET_SPEED = 1700
+TARGET_SPEED = 1600 # Forward speed.
 
 
 def talker():
@@ -66,11 +66,11 @@ def talker():
                 target.channels[0] = target_rotation
                 target.channels[1] = TARGET_SPEED
             elif angle < -np.pi / 2:
-                target_rotation = 1000
+                target_rotation = 1000 # Max left turn channel value
                 target.channels[0] = target_rotation
                 target.channels[1] = TARGET_SPEED
             else:
-                target.channels[0] = 2000
+                target.channels[0] = 2000 # Max right turn channel value
                 target.channels[1] = TARGET_SPEED
 
             # target.channels[2] = 100
@@ -83,12 +83,14 @@ def talker():
             # target.velocity.x = 0.1
             # target.velocity.y = -0.1
             # target.yaw = yaw
+            print(target)
+
             pub.publish(target)
     print("stopping")
     target = OverrideRCIn()
-    target.channels[0] = 2000
-    target.channels[1] = 1000
-
+    target.channels[0] = 2000 # right turn stop
+    target.channels[1] = 1500 # Stop channel value
+    print(target)
     pub.publish(target)
     print("stopped")
 

@@ -1,0 +1,73 @@
+communication:
+  iceoryx:
+    app_name_prefix: dora-iceoryx-example
+    
+nodes:
+  - id: webcam
+    operator:
+      python: ../operators/webcam_tracing.py
+      inputs:
+        tick: dora/timer/millis/400
+      outputs:
+        - image
+
+  - id: ndt_pose
+    custom:
+      source: python
+      args: ../nodes/mavros_global_position_local.py
+      outputs:
+        - position
+        - gps_waypoints 
+
+ 
+  #- id: yolop
+    #operator: 
+      #outputs:
+        #- lanes
+        #- drivable_area
+      #inputs:
+        #image: webcam/image
+      #python: https://raw.githubusercontent.com/dora-rs/dora-drives/downloadable_yolov5/operators/yolop_op.py
+
+  - id: fot
+    operator:
+      python: ../operators/fot_op.py
+      inputs:
+        position: ndt_pose/position
+        gps_waypoints: ndt_pose/gps_waypoints
+        obstacles: obstacle_location_op/obstacles
+      outputs:
+        - waypoints
+    #env:
+      #GOAL_WAYPOINTS: 0, 1.5, 3, 1.5
+
+  - id: pid
+    operator:
+      python: ../operators/pid_control_op.py
+      inputs:
+        position: ndt_pose/position
+        waypoints: fot/waypoints
+      outputs:
+        - control
+
+  - id: mavros
+    custom:
+      source: python
+      args: ../nodes/mavros_node_tracing.py
+      inputs:
+        control: pid/control
+
+  - id: plot
+    operator:
+      python: ../operators/plot.py
+      inputs:
+        image: webcam/image
+        tick: dora/timer/millis/400
+        lidar_pc: lidar/lidar_pc
+        obstacles_bbox: yolov5/bbox
+        obstacles: obstacle_location_op/obstacles
+        lanes: yolop/lanes
+        drivable_area: yolop/drivable_area
+        waypoints: fot/waypoints
+        position: ndt_pose/position
+        control: pid/control

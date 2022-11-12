@@ -35,3 +35,28 @@ install.sh
 ## Installation of Pytorch and Torchvision
 
 See: https://forums.developer.nvidia.com/t/pytorch-for-jetson/72048
+
+
+# In dora_ro
+# Open dora-coordinator
+. /home/demo/Documents/dora_ros_bridge/.env/bin/activate
+../dora/target/debug/dora-coordinator &
+# open iceoryx
+find ../dora/target -type f -wholename "*/iceoryx-install/bin/iox-roudi" -exec {} \; &
+
+# arm
+rosrun mavros mavsafety arm
+
+# SYS configuration
+rosrun mavros mavparam set SYSID_MYGCS 1
+
+# Start dataflow
+../dora/target/debug/dora-cli start graphs/dataflow.yml
+
+# STOP override
+
+rostopic pub /mavros//override mavros_msgs/OverrideRCIn "{channels: [1000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}"
+
+# or 
+
+rosrun mavros mavsys mode -c HOLD
